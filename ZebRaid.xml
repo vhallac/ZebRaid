@@ -25,7 +25,7 @@
           </FontHeight>
           <Color r="1" g="0.8196079" b="0" />
         </FontString>
-        <FontString name="$parentRoll" inherits="GameFontNormal" justifyH="RIGHT" font="Fonts\FRIZQT__.TTF" text="NAME XY">
+        <FontString name="$parentRole" inherits="GameFontNormal" justifyH="RIGHT" font="Fonts\FRIZQT__.TTF" text="NAME XY">
           <Size>
             <AbsDimension x="30" y="12" />
           </Size>
@@ -154,83 +154,6 @@
         </FontString>
       </Layer>
     </Layers>
-  </Frame>
-  <Frame name="ZebRaidDialogPlayerSmallPoolTemplate" inherits="ZebRaidDialogGroupTemplate" virtual="true">
-    <Size>
-      <AbsDimension x="100" y="194" />
-    </Size>
-    <Frames>
-      <Button name="$parentSlot1" inherits="ZebRaidDialogSlotTemplate">
-        <Anchors>
-          <Anchor point="TOP" relativeTo="$parentLabel" relativePoint="BOTTOM" />
-        </Anchors>
-      </Button>
-      <Button name="$parentSlot2" inherits="ZebRaidDialogSlotTemplate">
-        <Anchors>
-          <Anchor point="TOP" relativeTo="$parentSlot1" relativePoint="BOTTOM" />
-        </Anchors>
-      </Button>
-      <Button name="$parentSlot3" inherits="ZebRaidDialogSlotTemplate">
-        <Anchors>
-          <Anchor point="TOP" relativeTo="$parentSlot2" relativePoint="BOTTOM" />
-        </Anchors>
-      </Button>
-      <Button name="$parentSlot4" inherits="ZebRaidDialogSlotTemplate">
-        <Anchors>
-          <Anchor point="TOP" relativeTo="$parentSlot3" relativePoint="BOTTOM" />
-        </Anchors>
-      </Button>
-      <Button name="$parentSlot5" inherits="ZebRaidDialogSlotTemplate">
-        <Anchors>
-          <Anchor point="TOP" relativeTo="$parentSlot4" relativePoint="BOTTOM" />
-        </Anchors>
-      </Button>
-      <Button name="$parentSlot6" inherits="ZebRaidDialogSlotTemplate">
-        <Anchors>
-          <Anchor point="TOP" relativeTo="$parentSlot5" relativePoint="BOTTOM" />
-        </Anchors>
-      </Button>
-      <Button name="$parentSlot7" inherits="ZebRaidDialogSlotTemplate">
-        <Anchors>
-          <Anchor point="TOP" relativeTo="$parentSlot6" relativePoint="BOTTOM" />
-        </Anchors>
-      </Button>
-      <Button name="$parentSlot8" inherits="ZebRaidDialogSlotTemplate">
-        <Anchors>
-          <Anchor point="TOP" relativeTo="$parentSlot7" relativePoint="BOTTOM" />
-        </Anchors>
-      </Button>
-      <Button name="$parentSlot9" inherits="ZebRaidDialogSlotTemplate">
-        <Anchors>
-          <Anchor point="TOP" relativeTo="$parentSlot8" relativePoint="BOTTOM" />
-        </Anchors>
-      </Button>
-      <Button name="$parentSlot10" inherits="ZebRaidDialogSlotTemplate">
-        <Anchors>
-          <Anchor point="TOP" relativeTo="$parentSlot9" relativePoint="BOTTOM" />
-        </Anchors>
-      </Button>
-      <Button name="$parentSlot11" inherits="ZebRaidDialogSlotTemplate">
-        <Anchors>
-          <Anchor point="TOP" relativeTo="$parentSlot10" relativePoint="BOTTOM" />
-        </Anchors>
-      </Button>
-      <Button name="$parentSlot12" inherits="ZebRaidDialogSlotTemplate">
-        <Anchors>
-          <Anchor point="TOP" relativeTo="$parentSlot11" relativePoint="BOTTOM" />
-        </Anchors>
-      </Button>
-      <Button name="$parentSlot13" inherits="ZebRaidDialogSlotTemplate">
-        <Anchors>
-          <Anchor point="TOP" relativeTo="$parentSlot12" relativePoint="BOTTOM" />
-        </Anchors>
-      </Button>
-      <Button name="$parentSlot14" inherits="ZebRaidDialogSlotTemplate">
-        <Anchors>
-          <Anchor point="TOP" relativeTo="$parentSlot13" relativePoint="BOTTOM" />
-        </Anchors>
-      </Button>
-    </Frames>
   </Frame>
   <Frame name="ZebRaidDialogPlayerPoolTemplate" inherits="ZebRaidDialogGroupTemplate" virtual="true">
     <Size>
@@ -402,7 +325,7 @@
     </Anchors>
     <Layers>
       <Layer>
-        <FontString name="$parentWarriors" inherits="GameFontNormal" font="Fonts\FRIZQT__.TTF" text="WARRIORS_LOCALE: 0">
+        <FontString name="$parentTank" inherits="GameFontNormal" font="Fonts\FRIZQT__.TTF" text="TANK_LOCALE: 0">
           <Anchors>
             <Anchor point="TOPLEFT">
               <Offset>
@@ -421,9 +344,9 @@
             </Offset>
           </Shadow>
         </FontString>
-        <FontString name="$parentDruids" inherits="GameFontNormal" font="Fonts\FRIZQT__.TTF" text="DRUIDS_LOCALE: 0">
+        <FontString name="$parentMelee" inherits="GameFontNormal" font="Fonts\FRIZQT__.TTF" text="MELEE_LOCALE: 0">
           <Anchors>
-            <Anchor point="TOPLEFT" relativeTo="$parentWarriors" relativePoint="BOTTOMLEFT">
+            <Anchor point="TOPLEFT" relativeTo="$parentTank" relativePoint="BOTTOMLEFT">
               <Offset>
                 <AbsDimension x="0" y="-8" />
               </Offset>
@@ -440,9 +363,9 @@
             </Offset>
           </Shadow>
         </FontString>
-        <FontString name="$parentPaladins" inherits="GameFontNormal" font="Fonts\FRIZQT__.TTF" text="PALADINS_LOCALE: 0">
+        <FontString name="$parentHealer" inherits="GameFontNormal" font="Fonts\FRIZQT__.TTF" text="HEALER_LOCALE: 0">
           <Anchors>
-            <Anchor point="TOPLEFT" relativeTo="$parentDruids" relativePoint="BOTTOMLEFT">
+            <Anchor point="TOPLEFT" relativeTo="$parentMelee" relativePoint="BOTTOMLEFT">
               <Offset>
                 <AbsDimension x="0" y="-8" />
               </Offset>
@@ -459,104 +382,9 @@
             </Offset>
           </Shadow>
         </FontString>
-        <FontString name="$parentRogues" inherits="GameFontNormal" font="Fonts\FRIZQT__.TTF" text="ROGUES_LOCALE: 0">
+        <FontString name="$parentRanged" inherits="GameFontNormal" font="Fonts\FRIZQT__.TTF" text="RANGED_LOCALE: 0">
           <Anchors>
-            <Anchor point="TOPLEFT" relativeTo="$parentPaladins" relativePoint="BOTTOMLEFT">
-              <Offset>
-                <AbsDimension x="0" y="-8" />
-              </Offset>
-            </Anchor>
-          </Anchors>
-          <FontHeight>
-            <AbsValue val="12" />
-          </FontHeight>
-          <Color r="1" g="0.8196079" b="0" />
-          <Shadow>
-            <Color r="0" g="0" b="0" />
-            <Offset>
-              <AbsDimension x="1" y="-1" />
-            </Offset>
-          </Shadow>
-        </FontString>
-        <FontString name="$parentPriests" inherits="GameFontNormal" font="Fonts\FRIZQT__.TTF" text="PRIESTS_LOCALE: 0">
-          <Anchors>
-            <Anchor point="TOPLEFT" relativeTo="$parentRogues" relativePoint="BOTTOMLEFT">
-              <Offset>
-                <AbsDimension x="0" y="-8" />
-              </Offset>
-            </Anchor>
-          </Anchors>
-          <FontHeight>
-            <AbsValue val="12" />
-          </FontHeight>
-          <Color r="1" g="0.8196079" b="0" />
-          <Shadow>
-            <Color r="0" g="0" b="0" />
-            <Offset>
-              <AbsDimension x="1" y="-1" />
-            </Offset>
-          </Shadow>
-        </FontString>
-        <FontString name="$parentMages" inherits="GameFontNormal" font="Fonts\FRIZQT__.TTF" text="MAGES_LOCALE: 0">
-          <Anchors>
-            <Anchor point="LEFT" relativeTo="$parentWarriors" relativePoint="RIGHT">
-              <Offset>
-                <AbsDimension x="25" y="0" />
-              </Offset>
-            </Anchor>
-          </Anchors>
-          <FontHeight>
-            <AbsValue val="12" />
-          </FontHeight>
-          <Color r="1" g="0.8196079" b="0" />
-          <Shadow>
-            <Color r="0" g="0" b="0" />
-            <Offset>
-              <AbsDimension x="1" y="-1" />
-            </Offset>
-          </Shadow>
-        </FontString>
-        <FontString name="$parentShamans" inherits="GameFontNormal" font="Fonts\FRIZQT__.TTF" text="SHAMANS_LOCALE: 0">
-          <Anchors>
-            <Anchor point="TOPLEFT" relativeTo="$parentMages" relativePoint="BOTTOMLEFT">
-              <Offset>
-                <AbsDimension x="0" y="-8" />
-              </Offset>
-            </Anchor>
-          </Anchors>
-          <FontHeight>
-            <AbsValue val="12" />
-          </FontHeight>
-          <Color r="1" g="0.8196079" b="0" />
-          <Shadow>
-            <Color r="0" g="0" b="0" />
-            <Offset>
-              <AbsDimension x="1" y="-1" />
-            </Offset>
-          </Shadow>
-        </FontString>
-        <FontString name="$parentWarlocks" inherits="GameFontNormal" font="Fonts\FRIZQT__.TTF" text="WARLOCKS_LOCALE: 0">
-          <Anchors>
-            <Anchor point="TOPLEFT" relativeTo="$parentShamans" relativePoint="BOTTOMLEFT">
-              <Offset>
-                <AbsDimension x="0" y="-8" />
-              </Offset>
-            </Anchor>
-          </Anchors>
-          <FontHeight>
-            <AbsValue val="12" />
-          </FontHeight>
-          <Color r="1" g="0.8196079" b="0" />
-          <Shadow>
-            <Color r="0" g="0" b="0" />
-            <Offset>
-              <AbsDimension x="1" y="-1" />
-            </Offset>
-          </Shadow>
-        </FontString>
-        <FontString name="$parentHunters" inherits="GameFontNormal" font="Fonts\FRIZQT__.TTF" text="HUNTERS_LOCALE: 0">
-          <Anchors>
-            <Anchor point="TOPLEFT" relativeTo="$parentWarlocks" relativePoint="BOTTOMLEFT">
+            <Anchor point="TOPLEFT" relativeTo="$parentHealer" relativePoint="BOTTOMLEFT">
               <Offset>
                 <AbsDimension x="0" y="-8" />
               </Offset>
@@ -766,24 +594,6 @@
               <Anchor point="TOPLEFT" relativeTo="$parentConfirmed" relativePoint="TOPRIGHT">
                 <Offset>
                   <AbsDimension x="10" y="0" />
-                </Offset>
-              </Anchor>
-            </Anchors>
-          </Frame>
-          <Frame name="$parentPenalty" inherits="ZebRaidDialogPlayerSmallPoolTemplate">
-            <Anchors>
-              <Anchor point="TOPLEFT" relativeTo="$parentReserved" relativePoint="TOPRIGHT">
-                <Offset>
-                  <AbsDimension x="25" y="0" />
-                </Offset>
-              </Anchor>
-            </Anchors>
-          </Frame>
-          <Frame name="$parentSitout" inherits="ZebRaidDialogPlayerSmallPoolTemplate">
-            <Anchors>
-              <Anchor point="TOPLEFT" relativeTo="$parentPenalty" relativePoint="BOTTOMLEFT">
-                <Offset>
-                  <AbsDimension x="0" y="-14" />
                 </Offset>
               </Anchor>
             </Anchors>
@@ -1045,23 +855,6 @@
                 </OnClick>
             </Scripts>
           </Button>
-          <Button name="$parentCloseRaid" inherits="UIPanelButtonTemplate" text="CLOSERAID_LOCALE">
-            <Size>
-              <AbsDimension x="100" y="24"/>
-            </Size>
-            <Anchors>
-              <Anchor point="TOP" relativeTo="$parentUnlock" relativePoint="BOTTOM">
-                <Offset>
-                    <AbsDimension x="0" y="-3" />
-                </Offset>
-              </Anchor>
-            </Anchors>
-            <Scripts>
-                <OnClick>
-                    ZebRaid:CloseRaid();
-                </OnClick>
-            </Scripts>
-          </Button>          
         </Frames>
       </Frame>
     </Frames>

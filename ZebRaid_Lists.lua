@@ -33,12 +33,6 @@ function ZebRaid:AddToList(state, list, name)
     local destList = list;
     local signupData = self.RegisteredUsers[name];
 
-    if not state.RaidHistoryEntry.players[name] then
-        state.RaidHistoryEntry.players[name] = {};
-    end
-
-    local histEntry = state.RaidHistoryEntry.players[name];
-
     if list.name == "Confirmed" then
         insertPos = self:FindClassInsertPos(list, name);
     elseif list.name == "GuildList" then
@@ -56,13 +50,6 @@ function ZebRaid:AddToList(state, list, name)
         else
             -- otherwise insert player to the end.
             table.insert(destList.members, name);
-        end
-        
-        if list.name ~= "GuildList" then
-            histEntry.listName = destList.name;
-        else
-            -- Do not save any data for people in Guild list.
-            state.RaidHistoryEntry.players[name] = nil;
         end
     end
 end
@@ -87,16 +74,8 @@ function ZebRaid:RemoveFromList(state, list, nameOrPos)
     -- If garbage in, no work done ...
     if not pos or not name then return; end
 
-    local histEntry = state.RaidHistoryEntry.players[name];
-
     -- First, get rid of the member
     table.remove(list.members, pos);
-
-    -- If the player has a history entry, then get rid of the changes
-    if histEntry then
-        -- Get rid of the recorded list name.
-        histEntry.listName = nil;
-    end
 end
 
 -- Find a suitable target list for the specified player name inside the
@@ -145,17 +124,8 @@ function ZebRaid:FindTargetList(list, name)
     -- GuildList: Confirmed
     elseif list.name == "GuildList" then
         destList = state.Lists["Confirmed"];
-    -- Penalty or Sitout: SignedUp (unsure players can receive neither)
-    elseif list.name == "Penalty" or list.name == "Sitout" then
-        destList = state.Lists["SignedUp"];
     end
 
-    -- If the guy has a penalty, he moves to sitout 
-    -- regardless of the current selection
---    if stats and (stats.penalties > 0) then
-  --      destList = self.Lists["Sitout"];
-    --end
-    
     return destList;
 end
 

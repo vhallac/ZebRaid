@@ -2,7 +2,7 @@
 ## Title: ZebRaid
 ## Author: Dys
 ## DefaultState: Enabled
-## SavedVariables: ZebRaidHistory, ZebRaidState
+## SavedVariables: ZebRaidState, ZebRaidPlayerData
 ## LoadOnDemand: 0
 
 ## OptionalDeps: Ace2, RollCall-1.0, LibBabble-Class-3.0, RosterLib, Ni_Karma

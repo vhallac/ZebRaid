@@ -41,76 +41,55 @@ Function ReadPage(URL, cookies)
     ReadPage = PageText
 End Function
 
-Function ScrapeTable(Cells, message)
+Function ScrapeSection(table, message)
 
     scraped = ""
+    iName = -1
+    iNote = -1
+    iRole = -1
+    For iCell = 0 To table.rows(0).cells.Length - 1
+        hdrText = InnermostChild(table.rows(0).cells(iCell)).nodeValue
+        If left(hdrText, 4) = "Name" then
+            iName = iCell
+        ElseIf left(hdrText, 8) = "Comments" then
+            iNote = iCell
+        ElseIf left(hdrText, 4) = "Role" then
+            iRole = iCell
+        End If
+    Next
 
-    For classrow = 0 To Cells.Length - 1
+    For iRow = 1 to table.rows.Length - 1
         attendName = ""
         attendNote = ""
-        attendRoll = ""
-        Set Members = Cells(classrow).Children
-        Set member = Members(0).Rows(1).Cells(0)
-        For i = 0 To member.Children.Length - 1
-
-            Set cmember = member.Children(i)
-
-        	cell0 = Trim(cmember.Rows(1).Cells(0).innerHTML)
-        	bul = InStr(cell0, "up.png") ' Check if we have a class leader here
-        	shiftIdx = 0
-        	if bul <> 0 Then shiftIdx = 1
-
-            attendName = Trim(cmember.Rows(1).Cells(shiftIdx + 1).innertext)
-            attendNote = Trim(cmember.Rows(1).Cells(shiftIdx + 0).innerHTML)
-            attendRoll = Trim(cmember.Rows(1).Cells(shiftIdx + 2).innerHTML)
-
-            If attendNote <> "" Then
-                bul = InStr(attendNote, "note.png")
-				If bul <> 0 Then
-	                attendNote = Mid(attendNote, bul + 21)
-	                bul = InStr(attendNote, "<td>")
-	            End If
-				If bul <> 0 Then
-	                attendNote = Trim(Mid(attendNote, bul + 5))
-	                bul = InStr(attendNote, "</td>")
-	            End If
-				If bul <> 0 Then
-	                attendNote = Trim(Left(attendNote, bul - 1))
-	            Else
-	            	attendNote = ""
+        attendRole = ""
+        If iName <> -1 then
+            attendName = InnermostChild(table.rows(iRow).cells(iName)).nodeValue
+        End If
+        If iNote <> -1 then
+            attendNote = InnermostChild(table.rows(iRow).cells(iNote)).nodeValue
+            If attendNote <> "-" then
+                tooltipNote = "" & InnermostChild(table.rows(iRow).cells(iNote)).parentNode.getAttribute("onmouseover")
+                s = InStr(tooltipNote,"<br>")
+                If s <> 0 then
+                    e = InStr(s, tooltipNote,",this")
+                    attendNote = Mid(tooltipNote, s, e-s-1)
+                    attendNote = Replace(attendNote, "<br>", "")
                 End If
-	        End If
-
-            If attendRoll <> "" Then
-                bul = InStr(attendRoll, "roll.png")
-                attendRoll = Mid(attendRoll, bul + 21)
-                bul = InStr(attendRoll, "<td>")
-                attendRoll = Trim(Mid(attendRoll, bul + 5))
-                bul = InStr(attendRoll, "</td>")
-                attendRoll = Trim(Left(attendRoll, bul - 1))
+            Else
+                attendNote = ""
             End If
-            scraped = scraped & "    """
-            scraped = scraped & attendName
-            scraped = scraped & ":" & message & ":" & attendRoll
-            scraped = scraped & ":" & attendNote & ""","
-            scraped = scraped & vbCrLf
-        Next
-'        For i = 0 To Members.Length - 1
-'            Set member = Members(i).Rows(1).Cells
-'            scraped = scraped & "    """
-'            scraped = scraped & Trim(member(1).Children(0).innerText)
-'            scraped = scraped & ":" & message & ":" & Trim(member(3).innerText)
-'            ' Can't get member(0).children(0) to work.
-'            note = member(0).innerHTML
-'            If Len(note) > 0 Then
-'                note = Replace(note, "<A onmouseover=""overlib('", "")
-'                note = Left(note, InStr(note, "',") - 1)
-'            End If
-'            scraped = scraped & ":" & Trim(note) & ""","
-'            scraped = scraped & vbCrLf
-'        Next
+        End If
+        If iRole <> -1 then
+            attendRole = InnermostChild(table.rows(iRow).cells(iRole)).nodeValue
+        End If
+
+        scraped = scraped & "    """
+        scraped = scraped & Trim(attendName)
+        scraped = scraped & ":" & message & ":" & Trim(attendRole)
+        scraped = scraped & ":" & Trim(attendNote) & ""","
+        scraped = scraped & vbCrLf
     Next
-    ScrapeTable = scraped
+    ScrapeSection = scraped
 End Function
 
 Function InnermostChild(node)
@@ -133,44 +112,36 @@ Function ScrapeRaidList(PageText)
 
     scraped = ""
 
-    Set Tables = oDoc.getElementsByTagName("table")
+    Set content = oDoc.getElementById("contentContainer")
+    Set tables = content.getElementsByTagName("table")
 
-    For iTbl = 0 to Tables.Length - 1
-        tblTitle = trim(Tables(iTbl).Rows(0).innerText)
-        If Left(tblTitle, 13) = "Current Raids" Then
-            locList = iTbl
-            Exit For
+    Set cells = Tables(0).Rows(0).Cells
+    For iCol = 0 to cells.Length - 1
+        Set cell = InnermostChild(cells(iCol))
+        If not (cell is nothing or isNull(cell)) Then
+            cellTitle = trim(cell.nodeValue)
+            If left(cellTitle,4) = "Date" Then locDate = iCol
+            If left(cellTitle,7) = "Dungeon" Then locUrl = iCol
+            If locDate <> -1 And locUrl <> -1 Then Exit For
         End If
     Next
 
-    If locList <> -1 then
-        Set cells = Tables(locList).Rows(1).Cells
-        For iCol = 0 to cells.Length - 1
-            Set cell = InnermostChild(cells(iCol))
-            If not (cell is nothing or isNull(cell)) Then
-                cellTitle = trim(cell.nodeValue)
-                If left(cellTitle,4) = "Date" Then locDate = iCol
-                If left(cellTitle,4) = "Name" Then locUrl = iCol
-                If locDate <> -1 And locUrl <> -1 Then Exit For
-            End If
-        Next
-    End If
-
-    If locList<> -1 And locDate <> -1 And locUrl <> -1 Then
-        For iRow = 2 to Tables(locList).Rows.Length - 3
-            Set cell = InnermostChild(Tables(locList).Rows(iRow).Cells(locUrl))
+    If locDate <> -1 And locUrl <> -1 Then
+        For iRow = 1 to Tables(0).Rows.Length - 1
+            Set cell1 = InnermostChild(Tables(0).Rows(iRow).Cells(locUrl))
             scraped = scraped & _
                 "<option value=""" & _
-                    Replace(cell.parentNode.getAttribute("href"), "about:", "") & """>"
-            Set cell = InnermostChild(Tables(locList).Rows(iRow).Cells(locDate))
-            scraped = scraped & cell.nodeValue & "</option>"
+                    Replace(cell1.parentNode.getAttribute("href"), "about:", "") & """>"
+            Set cell2 = InnermostChild(Tables(0).Rows(iRow).Cells(locDate))
+            scraped = scraped & cell2.nodeValue
+            scraped = scraped & " - " & cell1.nodeValue & "</option>"
         Next
     End If
 
     ScrapeRaidList = scraped
 End Function
 
-Function ScrapeData(PageText)
+Function ScrapeRaidData(PageText)
     locConfirTbl = -1
     locSignedTbl = -1
     locNotsurTbl = -1
@@ -184,32 +155,28 @@ Function ScrapeData(PageText)
 
     scraped = ""
 
-    For mx = 0 To oDoc.getElementsByTagName("table").Length - 1
-        tblTitle = Trim(oDoc.getElementsByTagName("table")(mx).Rows(0).innertext)
+    Set content = oDoc.getElementById("contentContainer")
+    set divs = content.getElementsByTagName("div")
 
-        If Left(tblTitle, 11) = "Confirmed (" Then locConfirTbl = mx + 1
-        If Left(tblTitle, 8) = "Signed (" Then locSignedTbl = mx + 1
-        If Left(tblTitle, 10) = "Unsigned (" Then locUnsignTbl = mx + 1
-        If Left(tblTitle, 10) = "Not Sure (" Then locNotsurTbl = mx + 1
+    For mx = 0 To divs.Length - 1
+        if divs(mx).className = "contentHeader" then
+            hdrText = divs(mx).InnerText
+            Set sectionTbls = divs(mx+1).getElementsByTagName("table")
+            if left(hdrText, 5) = "melee" or _
+               left(hdrText, 6) = "ranged" or _
+               left(hdrText, 4) = "tank" or _
+               left(hdrText, 6) = "hybrid" or _
+               left(hdrText, 6) = "healer" then
+                scraped = scraped & ScrapeSection(sectionTbls(0), "signed")
+            Elseif left(hdrText,6) = "Queued" then
+                scraped = scraped & ScrapeSection(sectionTbls(0), "unsure")
+            Elseif left(hdrText,9) = "Cancelled" then
+                scraped = scraped & ScrapeSection(sectionTbls(0), "unsigned")
+            End If
+        End If
     Next
-    ' Get the confirmed list as signed
-    'Set signedCells = oDoc.getElementsByTagName("table")(5).Rows(2).Cells
-    Set signedCells = oDoc.getElementsByTagName("table")(locConfirTbl).Rows(0).Cells
-    scraped = scraped & ScrapeTable(signedCells, "signed")
 
-    ' Get the signed list
-    Set signedCells = oDoc.getElementsByTagName("table")(locSignedTbl).Rows(0).Cells
-    scraped = scraped & ScrapeTable(signedCells, "signed")
-
-    ' Get the unsigned list
-    Set signedCells = oDoc.getElementsByTagName("table")(locUnsignTbl).Rows(0).Cells
-    scraped = scraped & ScrapeTable(signedCells, "unsigned")
-
-    ' Get the unsure list
-    Set signedCells = oDoc.getElementsByTagName("table")(locNotsurTbl).Rows(0).Cells
-    scraped = scraped & ScrapeTable(signedCells, "unsure")
-
-    ScrapeData = scraped
+    ScrapeRaidData = scraped
 End Function
 
 Function GetSessionId(url)
@@ -223,7 +190,7 @@ Function GetSessionId(url)
 End Function
 
 Function GetRaidId(url)
-    s = InStr(url, "r=") + 2
+    s = InStr(url, "raid_id=") + 2
     e = InStr(s, url, "&")
     if e <> 0 Then
         GetRaidId = Mid(url, s, e - s)
@@ -244,7 +211,7 @@ With fso
     End If
 End With
 
-raidListPage = ReadPage("http://www.zebraguild.com/dkp40/plugins/raidplan/listraids.php?s=", null)
+raidListPage = ReadPage("http://www.zebraguild.com/wrm/index.php", null)
 choices = ScrapeRaidList(raidListPage)
 
 Set ie = WScript.CreateObject("InternetExplorer.Application", "IE_")
@@ -294,14 +261,14 @@ End If
 
 sessionId = GetSessionId(raidUrl)
 raidId = GetRaidId(raidUrl)
-cookies = Login("http://www.zebraguild.com/dkp40/login.php?s=" & sessionId & "&username=" & userName & "&password=" & password & "&login=Login")
+cookies = ""
 
-raidPage = ReadPage("http://www.zebraguild.com/dkp40/plugins/raidplan/" & raidUrl, cookies)
+raidPage = ReadPage("http://www.zebraguild.com/wrm/" & raidUrl, cookies)
 ' Parse the planned tables, and prepare output (raidData variable holds it)
 raidId = raidId & "_" & FormatDateTime(Now(), vbShortDate)
 raidData = "ZebRaid.RaidID = """ & raidId & """" & vbCrLf
 raidData = raidData & "ZebRaid.Signups = {" & vbCrLf
-raidData = raidData & ScrapeData(raidPage)
+raidData = raidData & ScrapeRaidData(raidPage)
 raidData = raidData & "};" & vbCrLf
 
 ' Report the results
@@ -323,4 +290,5 @@ With CreateObject("adodb.stream")
 End With
 
 MsgBox ("Raid data written to " & outFileName & " successfully")
+            'WScript.StdOut.WriteLine("hdrText = " & hdrText)
 
