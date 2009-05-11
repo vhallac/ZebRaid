@@ -1,0 +1,1089 @@
+﻿<Ui xmlns="http://www.blizzard.com/wow/ui" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Button name="ZebRaidDialogButtonTemplate" virtual="true" hidden="true" parent="ZebRaidDialogPanel" movable="true">
+    <Size>
+      <AbsDimension x="95" y="13" />
+    </Size>
+    <Anchors>
+      <Anchor point="TOP" />
+    </Anchors>
+    <Layers>
+      <Layer level="BACKGROUND">
+        <Texture name="$parentColor">
+          <Color r="0.6941177" g="0.6" b="0.4901961" a="0.6941177" />
+        </Texture>
+      </Layer>
+      <Layer>
+        <FontString name="$parentLabel" inherits="GameFontNormal" font="Fonts\FRIZQT__.TTF" justifyH="LEFT" text="99">
+          <Size>
+            <AbsDimension x="74" y="12" />
+          </Size>
+          <Anchors>
+            <Anchor point="LEFT" />
+          </Anchors>
+          <FontHeight>
+            <AbsValue val="12" />
+          </FontHeight>
+          <Color r="1" g="0.8196079" b="0" />
+        </FontString>
+        <FontString name="$parentRoll" inherits="GameFontNormal" justifyH="RIGHT" font="Fonts\FRIZQT__.TTF" text="NAME XY">
+          <Size>
+            <AbsDimension x="30" y="12" />
+          </Size>
+          <Anchors>
+            <Anchor point="RIGHT" />
+          </Anchors>
+          <FontHeight>
+            <AbsValue val="12" />
+          </FontHeight>
+          <Color r="1" g="0.8196079" b="0" />
+        </FontString>
+      </Layer>
+    </Layers>
+    <Scripts>
+      <OnDragStart>
+        ZebRaid:PlayerOnDragStart();
+      </OnDragStart>
+      <OnDragStop>
+        ZebRaid:PlayerOnDragStop();
+      </OnDragStop>
+      <OnDoubleClick>
+        ZebRaid:PlayerOnDoubleClick();
+      </OnDoubleClick>
+      <OnEnter>
+        if (this.tooltipText) then
+          GameTooltip:SetOwner(this, "ANCHOR_RIGHT");
+          if (this.tooltipDblLine) then
+            GameTooltip:AddDoubleLine(this.tooltipDblLine.left,
+                                      this.tooltipDblLine.right,
+                                      NORMAL_FONT_COLOR.r,
+                                      NORMAL_FONT_COLOR.g, 
+                                      NORMAL_FONT_COLOR.b, 
+                                      HIGHLIGHT_FONT_COLOR.r, 
+                                      HIGHLIGHT_FONT_COLOR.g,
+                                      HIGHLIGHT_FONT_COLOR.b);
+          end
+          GameTooltip:AddLine(this.tooltipText, 1, 1, 1, 1);
+          GameTooltip:Show();
+        end
+      </OnEnter>
+      <OnLeave>
+        GameTooltip:Hide();
+      </OnLeave>
+    </Scripts>
+  </Button>
+  <Frame name="ZebRaidDialogSlotTemplate" virtual="true">
+    <Size>
+      <AbsDimension x="100" y="13" />
+    </Size>
+    <Anchors>
+      <Anchor point="TOP" />
+      <Offset>
+        <AbsDimension x="0" y="0" />
+      </Offset>
+    </Anchors>
+    <Layers>
+      <Layer level="BACKGROUND">
+        <Texture name="$parentColor">
+          <Color r="0.05" g="0.05" b="0.05" />
+        </Texture>
+      </Layer>
+      <Layer>
+        <FontString name="$parentLabel" inherits="GameFontDarkGraySmall" font="Fonts\FRIZQT__.TTF" text="EMPTY_LOCALE">
+          <Size>
+            <AbsDimension x="96" y="12" />
+          </Size>
+          <Anchors>
+            <Anchor point="CENTER" />
+          </Anchors>
+          <FontHeight>
+            <AbsValue val="10" />
+          </FontHeight>
+          <Color r="0.3411765" g="0.3411765" b="0.3411765" />
+          <Shadow>
+            <Color r="0" g="0" b="0" />
+            <Offset>
+              <AbsDimension x="1" y="-1" />
+            </Offset>
+          </Shadow>
+        </FontString>
+      </Layer>
+    </Layers>
+    <!--
+    <Scripts>
+      <OnMouseWheel>
+        ZebRaid:OnMouseWheel(arg1)
+      </OnMouseWheel>
+    </Scripts>
+    -->
+  </Frame>
+  <Frame name="ZebRaidDialogGroupTemplate" virtual="true">
+    <Size>
+      <AbsDimension x="100" y="100" />
+    </Size>
+    <Anchors>
+      <Anchor point="TOP" />
+      <Offset>
+        <AbsDimension x="0" y="0" />
+      </Offset>
+    </Anchors>
+    <Layers>
+      <Layer />
+      <Layer level="BACKGROUND">
+        <Texture>
+          <Color r="0.4" g="0.4" b="1" />
+        </Texture>
+      </Layer>
+      <Layer>
+        <FontString name="$parentLabel" inherits="GameFontDarkGraySmall" font="Fonts\FRIZQT__.TTF" text="HEADER_LOCALE">
+          <Size>
+            <AbsDimension x="96" y="12" />
+          </Size>
+          <Anchors>
+            <Anchor point="TOP" />
+          </Anchors>
+          <FontHeight>
+            <AbsValue val="10" />
+          </FontHeight>
+          <Color r="1" g="1" b="1" />
+          <Shadow>
+            <Color r="0" g="0" b="0" />
+            <Offset>
+              <AbsDimension x="0" y="-1" />
+            </Offset>
+          </Shadow>
+        </FontString>
+      </Layer>
+    </Layers>
+  </Frame>
+  <Frame name="ZebRaidDialogPlayerSmallPoolTemplate" inherits="ZebRaidDialogGroupTemplate" virtual="true">
+    <Size>
+      <AbsDimension x="100" y="194" />
+    </Size>
+    <Frames>
+      <Button name="$parentSlot1" inherits="ZebRaidDialogSlotTemplate">
+        <Anchors>
+          <Anchor point="TOP" relativeTo="$parentLabel" relativePoint="BOTTOM" />
+        </Anchors>
+      </Button>
+      <Button name="$parentSlot2" inherits="ZebRaidDialogSlotTemplate">
+        <Anchors>
+          <Anchor point="TOP" relativeTo="$parentSlot1" relativePoint="BOTTOM" />
+        </Anchors>
+      </Button>
+      <Button name="$parentSlot3" inherits="ZebRaidDialogSlotTemplate">
+        <Anchors>
+          <Anchor point="TOP" relativeTo="$parentSlot2" relativePoint="BOTTOM" />
+        </Anchors>
+      </Button>
+      <Button name="$parentSlot4" inherits="ZebRaidDialogSlotTemplate">
+        <Anchors>
+          <Anchor point="TOP" relativeTo="$parentSlot3" relativePoint="BOTTOM" />
+        </Anchors>
+      </Button>
+      <Button name="$parentSlot5" inherits="ZebRaidDialogSlotTemplate">
+        <Anchors>
+          <Anchor point="TOP" relativeTo="$parentSlot4" relativePoint="BOTTOM" />
+        </Anchors>
+      </Button>
+      <Button name="$parentSlot6" inherits="ZebRaidDialogSlotTemplate">
+        <Anchors>
+          <Anchor point="TOP" relativeTo="$parentSlot5" relativePoint="BOTTOM" />
+        </Anchors>
+      </Button>
+      <Button name="$parentSlot7" inherits="ZebRaidDialogSlotTemplate">
+        <Anchors>
+          <Anchor point="TOP" relativeTo="$parentSlot6" relativePoint="BOTTOM" />
+        </Anchors>
+      </Button>
+      <Button name="$parentSlot8" inherits="ZebRaidDialogSlotTemplate">
+        <Anchors>
+          <Anchor point="TOP" relativeTo="$parentSlot7" relativePoint="BOTTOM" />
+        </Anchors>
+      </Button>
+      <Button name="$parentSlot9" inherits="ZebRaidDialogSlotTemplate">
+        <Anchors>
+          <Anchor point="TOP" relativeTo="$parentSlot8" relativePoint="BOTTOM" />
+        </Anchors>
+      </Button>
+      <Button name="$parentSlot10" inherits="ZebRaidDialogSlotTemplate">
+        <Anchors>
+          <Anchor point="TOP" relativeTo="$parentSlot9" relativePoint="BOTTOM" />
+        </Anchors>
+      </Button>
+      <Button name="$parentSlot11" inherits="ZebRaidDialogSlotTemplate">
+        <Anchors>
+          <Anchor point="TOP" relativeTo="$parentSlot10" relativePoint="BOTTOM" />
+        </Anchors>
+      </Button>
+      <Button name="$parentSlot12" inherits="ZebRaidDialogSlotTemplate">
+        <Anchors>
+          <Anchor point="TOP" relativeTo="$parentSlot11" relativePoint="BOTTOM" />
+        </Anchors>
+      </Button>
+      <Button name="$parentSlot13" inherits="ZebRaidDialogSlotTemplate">
+        <Anchors>
+          <Anchor point="TOP" relativeTo="$parentSlot12" relativePoint="BOTTOM" />
+        </Anchors>
+      </Button>
+      <Button name="$parentSlot14" inherits="ZebRaidDialogSlotTemplate">
+        <Anchors>
+          <Anchor point="TOP" relativeTo="$parentSlot13" relativePoint="BOTTOM" />
+        </Anchors>
+      </Button>
+    </Frames>
+  </Frame>
+  <Frame name="ZebRaidDialogPlayerPoolTemplate" inherits="ZebRaidDialogGroupTemplate" virtual="true">
+    <Size>
+      <AbsDimension x="100" y="402" />
+    </Size>
+    <Frames>
+      <Button name="$parentSlot1" inherits="ZebRaidDialogSlotTemplate">
+        <Anchors>
+          <Anchor point="TOP" relativeTo="$parentLabel" relativePoint="BOTTOM" />
+        </Anchors>
+      </Button>
+      <Button name="$parentSlot2" inherits="ZebRaidDialogSlotTemplate">
+        <Anchors>
+          <Anchor point="TOP" relativeTo="$parentSlot1" relativePoint="BOTTOM" />
+        </Anchors>
+      </Button>
+      <Button name="$parentSlot3" inherits="ZebRaidDialogSlotTemplate">
+        <Anchors>
+          <Anchor point="TOP" relativeTo="$parentSlot2" relativePoint="BOTTOM" />
+        </Anchors>
+      </Button>
+      <Button name="$parentSlot4" inherits="ZebRaidDialogSlotTemplate">
+        <Anchors>
+          <Anchor point="TOP" relativeTo="$parentSlot3" relativePoint="BOTTOM" />
+        </Anchors>
+      </Button>
+      <Button name="$parentSlot5" inherits="ZebRaidDialogSlotTemplate">
+        <Anchors>
+          <Anchor point="TOP" relativeTo="$parentSlot4" relativePoint="BOTTOM" />
+        </Anchors>
+      </Button>
+      <Button name="$parentSlot6" inherits="ZebRaidDialogSlotTemplate">
+        <Anchors>
+          <Anchor point="TOP" relativeTo="$parentSlot5" relativePoint="BOTTOM" />
+        </Anchors>
+      </Button>
+      <Button name="$parentSlot7" inherits="ZebRaidDialogSlotTemplate">
+        <Anchors>
+          <Anchor point="TOP" relativeTo="$parentSlot6" relativePoint="BOTTOM" />
+        </Anchors>
+      </Button>
+      <Button name="$parentSlot8" inherits="ZebRaidDialogSlotTemplate">
+        <Anchors>
+          <Anchor point="TOP" relativeTo="$parentSlot7" relativePoint="BOTTOM" />
+        </Anchors>
+      </Button>
+      <Button name="$parentSlot9" inherits="ZebRaidDialogSlotTemplate">
+        <Anchors>
+          <Anchor point="TOP" relativeTo="$parentSlot8" relativePoint="BOTTOM" />
+        </Anchors>
+      </Button>
+      <Button name="$parentSlot10" inherits="ZebRaidDialogSlotTemplate">
+        <Anchors>
+          <Anchor point="TOP" relativeTo="$parentSlot9" relativePoint="BOTTOM" />
+        </Anchors>
+      </Button>
+      <Button name="$parentSlot11" inherits="ZebRaidDialogSlotTemplate">
+        <Anchors>
+          <Anchor point="TOP" relativeTo="$parentSlot10" relativePoint="BOTTOM" />
+        </Anchors>
+      </Button>
+      <Button name="$parentSlot12" inherits="ZebRaidDialogSlotTemplate">
+        <Anchors>
+          <Anchor point="TOP" relativeTo="$parentSlot11" relativePoint="BOTTOM" />
+        </Anchors>
+      </Button>
+      <Button name="$parentSlot13" inherits="ZebRaidDialogSlotTemplate">
+        <Anchors>
+          <Anchor point="TOP" relativeTo="$parentSlot12" relativePoint="BOTTOM" />
+        </Anchors>
+      </Button>
+      <Button name="$parentSlot14" inherits="ZebRaidDialogSlotTemplate">
+        <Anchors>
+          <Anchor point="TOP" relativeTo="$parentSlot13" relativePoint="BOTTOM" />
+        </Anchors>
+      </Button>
+      <Button name="$parentSlot15" inherits="ZebRaidDialogSlotTemplate">
+        <Anchors>
+          <Anchor point="TOP" relativeTo="$parentSlot14" relativePoint="BOTTOM" />
+        </Anchors>
+      </Button>
+      <Button name="$parentSlot16" inherits="ZebRaidDialogSlotTemplate">
+        <Anchors>
+          <Anchor point="TOP" relativeTo="$parentSlot15" relativePoint="BOTTOM" />
+        </Anchors>
+      </Button>
+      <Button name="$parentSlot17" inherits="ZebRaidDialogSlotTemplate">
+        <Anchors>
+          <Anchor point="TOP" relativeTo="$parentSlot16" relativePoint="BOTTOM" />
+        </Anchors>
+      </Button>
+      <Button name="$parentSlot18" inherits="ZebRaidDialogSlotTemplate">
+        <Anchors>
+          <Anchor point="TOP" relativeTo="$parentSlot17" relativePoint="BOTTOM" />
+        </Anchors>
+      </Button>
+      <Button name="$parentSlot19" inherits="ZebRaidDialogSlotTemplate">
+        <Anchors>
+          <Anchor point="TOP" relativeTo="$parentSlot18" relativePoint="BOTTOM" />
+        </Anchors>
+      </Button>
+      <Button name="$parentSlot20" inherits="ZebRaidDialogSlotTemplate">
+        <Anchors>
+          <Anchor point="TOP" relativeTo="$parentSlot19" relativePoint="BOTTOM" />
+        </Anchors>
+      </Button>
+      <Button name="$parentSlot21" inherits="ZebRaidDialogSlotTemplate">
+        <Anchors>
+          <Anchor point="TOP" relativeTo="$parentSlot20" relativePoint="BOTTOM" />
+        </Anchors>
+      </Button>
+      <Button name="$parentSlot22" inherits="ZebRaidDialogSlotTemplate">
+        <Anchors>
+          <Anchor point="TOP" relativeTo="$parentSlot21" relativePoint="BOTTOM" />
+        </Anchors>
+      </Button>
+      <Button name="$parentSlot23" inherits="ZebRaidDialogSlotTemplate">
+        <Anchors>
+          <Anchor point="TOP" relativeTo="$parentSlot22" relativePoint="BOTTOM" />
+        </Anchors>
+      </Button>
+      <Button name="$parentSlot24" inherits="ZebRaidDialogSlotTemplate">
+        <Anchors>
+          <Anchor point="TOP" relativeTo="$parentSlot23" relativePoint="BOTTOM" />
+        </Anchors>
+      </Button>
+      <Button name="$parentSlot25" inherits="ZebRaidDialogSlotTemplate">
+        <Anchors>
+          <Anchor point="TOP" relativeTo="$parentSlot24" relativePoint="BOTTOM" />
+        </Anchors>
+      </Button>
+      <Button name="$parentSlot26" inherits="ZebRaidDialogSlotTemplate">
+        <Anchors>
+          <Anchor point="TOP" relativeTo="$parentSlot25" relativePoint="BOTTOM" />
+        </Anchors>
+      </Button>
+      <Button name="$parentSlot27" inherits="ZebRaidDialogSlotTemplate">
+        <Anchors>
+          <Anchor point="TOP" relativeTo="$parentSlot26" relativePoint="BOTTOM" />
+        </Anchors>
+      </Button>
+      <Button name="$parentSlot28" inherits="ZebRaidDialogSlotTemplate">
+        <Anchors>
+          <Anchor point="TOP" relativeTo="$parentSlot27" relativePoint="BOTTOM" />
+        </Anchors>
+      </Button>
+      <Button name="$parentSlot29" inherits="ZebRaidDialogSlotTemplate">
+        <Anchors>
+          <Anchor point="TOP" relativeTo="$parentSlot28" relativePoint="BOTTOM" />
+        </Anchors>
+      </Button>
+      <Button name="$parentSlot30" inherits="ZebRaidDialogSlotTemplate">
+        <Anchors>
+          <Anchor point="TOP" relativeTo="$parentSlot29" relativePoint="BOTTOM" />
+        </Anchors>
+      </Button>
+    </Frames>
+  </Frame>
+  <Frame name="ZebRaidDialogStatsTemplate" virtual="true" inherits="OptionFrameBoxTemplate">
+    <Size>
+      <AbsDimension x="190" y="130" />
+    </Size>
+    <Anchors>
+      <Anchor point="TOPLEFT" relativeTo="$parentPanel" relativePoint="BOTTOMLEFT">
+        <Offset>
+          <AbsDimension x="0" y="-20" />
+        </Offset>
+      </Anchor>
+    </Anchors>
+    <Layers>
+      <Layer>
+        <FontString name="$parentWarriors" inherits="GameFontNormal" font="Fonts\FRIZQT__.TTF" text="WARRIORS_LOCALE: 0">
+          <Anchors>
+            <Anchor point="TOPLEFT">
+              <Offset>
+                <AbsDimension x="10" y="-10" />
+              </Offset>
+            </Anchor>
+          </Anchors>
+          <FontHeight>
+            <AbsValue val="12" />
+          </FontHeight>
+          <Color r="1" g="0.8196079" b="0" />
+          <Shadow>
+            <Color r="0" g="0" b="0" />
+            <Offset>
+              <AbsDimension x="1" y="-1" />
+            </Offset>
+          </Shadow>
+        </FontString>
+        <FontString name="$parentDruids" inherits="GameFontNormal" font="Fonts\FRIZQT__.TTF" text="DRUIDS_LOCALE: 0">
+          <Anchors>
+            <Anchor point="TOPLEFT" relativeTo="$parentWarriors" relativePoint="BOTTOMLEFT">
+              <Offset>
+                <AbsDimension x="0" y="-8" />
+              </Offset>
+            </Anchor>
+          </Anchors>
+          <FontHeight>
+            <AbsValue val="12" />
+          </FontHeight>
+          <Color r="1" g="0.8196079" b="0" />
+          <Shadow>
+            <Color r="0" g="0" b="0" />
+            <Offset>
+              <AbsDimension x="1" y="-1" />
+            </Offset>
+          </Shadow>
+        </FontString>
+        <FontString name="$parentPaladins" inherits="GameFontNormal" font="Fonts\FRIZQT__.TTF" text="PALADINS_LOCALE: 0">
+          <Anchors>
+            <Anchor point="TOPLEFT" relativeTo="$parentDruids" relativePoint="BOTTOMLEFT">
+              <Offset>
+                <AbsDimension x="0" y="-8" />
+              </Offset>
+            </Anchor>
+          </Anchors>
+          <FontHeight>
+            <AbsValue val="12" />
+          </FontHeight>
+          <Color r="1" g="0.8196079" b="0" />
+          <Shadow>
+            <Color r="0" g="0" b="0" />
+            <Offset>
+              <AbsDimension x="1" y="-1" />
+            </Offset>
+          </Shadow>
+        </FontString>
+        <FontString name="$parentRogues" inherits="GameFontNormal" font="Fonts\FRIZQT__.TTF" text="ROGUES_LOCALE: 0">
+          <Anchors>
+            <Anchor point="TOPLEFT" relativeTo="$parentPaladins" relativePoint="BOTTOMLEFT">
+              <Offset>
+                <AbsDimension x="0" y="-8" />
+              </Offset>
+            </Anchor>
+          </Anchors>
+          <FontHeight>
+            <AbsValue val="12" />
+          </FontHeight>
+          <Color r="1" g="0.8196079" b="0" />
+          <Shadow>
+            <Color r="0" g="0" b="0" />
+            <Offset>
+              <AbsDimension x="1" y="-1" />
+            </Offset>
+          </Shadow>
+        </FontString>
+        <FontString name="$parentPriests" inherits="GameFontNormal" font="Fonts\FRIZQT__.TTF" text="PRIESTS_LOCALE: 0">
+          <Anchors>
+            <Anchor point="TOPLEFT" relativeTo="$parentRogues" relativePoint="BOTTOMLEFT">
+              <Offset>
+                <AbsDimension x="0" y="-8" />
+              </Offset>
+            </Anchor>
+          </Anchors>
+          <FontHeight>
+            <AbsValue val="12" />
+          </FontHeight>
+          <Color r="1" g="0.8196079" b="0" />
+          <Shadow>
+            <Color r="0" g="0" b="0" />
+            <Offset>
+              <AbsDimension x="1" y="-1" />
+            </Offset>
+          </Shadow>
+        </FontString>
+        <FontString name="$parentMages" inherits="GameFontNormal" font="Fonts\FRIZQT__.TTF" text="MAGES_LOCALE: 0">
+          <Anchors>
+            <Anchor point="LEFT" relativeTo="$parentWarriors" relativePoint="RIGHT">
+              <Offset>
+                <AbsDimension x="25" y="0" />
+              </Offset>
+            </Anchor>
+          </Anchors>
+          <FontHeight>
+            <AbsValue val="12" />
+          </FontHeight>
+          <Color r="1" g="0.8196079" b="0" />
+          <Shadow>
+            <Color r="0" g="0" b="0" />
+            <Offset>
+              <AbsDimension x="1" y="-1" />
+            </Offset>
+          </Shadow>
+        </FontString>
+        <FontString name="$parentShamans" inherits="GameFontNormal" font="Fonts\FRIZQT__.TTF" text="SHAMANS_LOCALE: 0">
+          <Anchors>
+            <Anchor point="TOPLEFT" relativeTo="$parentMages" relativePoint="BOTTOMLEFT">
+              <Offset>
+                <AbsDimension x="0" y="-8" />
+              </Offset>
+            </Anchor>
+          </Anchors>
+          <FontHeight>
+            <AbsValue val="12" />
+          </FontHeight>
+          <Color r="1" g="0.8196079" b="0" />
+          <Shadow>
+            <Color r="0" g="0" b="0" />
+            <Offset>
+              <AbsDimension x="1" y="-1" />
+            </Offset>
+          </Shadow>
+        </FontString>
+        <FontString name="$parentWarlocks" inherits="GameFontNormal" font="Fonts\FRIZQT__.TTF" text="WARLOCKS_LOCALE: 0">
+          <Anchors>
+            <Anchor point="TOPLEFT" relativeTo="$parentShamans" relativePoint="BOTTOMLEFT">
+              <Offset>
+                <AbsDimension x="0" y="-8" />
+              </Offset>
+            </Anchor>
+          </Anchors>
+          <FontHeight>
+            <AbsValue val="12" />
+          </FontHeight>
+          <Color r="1" g="0.8196079" b="0" />
+          <Shadow>
+            <Color r="0" g="0" b="0" />
+            <Offset>
+              <AbsDimension x="1" y="-1" />
+            </Offset>
+          </Shadow>
+        </FontString>
+        <FontString name="$parentHunters" inherits="GameFontNormal" font="Fonts\FRIZQT__.TTF" text="HUNTERS_LOCALE: 0">
+          <Anchors>
+            <Anchor point="TOPLEFT" relativeTo="$parentWarlocks" relativePoint="BOTTOMLEFT">
+              <Offset>
+                <AbsDimension x="0" y="-8" />
+              </Offset>
+            </Anchor>
+          </Anchors>
+          <FontHeight>
+            <AbsValue val="12" />
+          </FontHeight>
+          <Color r="1" g="0.8196079" b="0" />
+          <Shadow>
+            <Color r="0" g="0" b="0" />
+            <Offset>
+              <AbsDimension x="1" y="-1" />
+            </Offset>
+          </Shadow>
+        </FontString>
+        <FontString name="$parentTotal" inherits="GameFontLarge" font="Fonts\FRIZQT__.TTF" text="TOTAL_LOCALE: 0">
+          <Anchors>
+            <Anchor point="BOTTOM" relativePoint="BOTTOM">
+              <Offset>
+                <AbsDimension x="0" y="8" />
+              </Offset>
+            </Anchor>
+          </Anchors>
+          <FontHeight>
+            <AbsValue val="12" />
+          </FontHeight>
+          <Color r="1" g="0.8196079" b="0" />
+          <Shadow>
+            <Color r="0" g="0" b="0" />
+            <Offset>
+              <AbsDimension x="1" y="-1" />
+            </Offset>
+          </Shadow>
+        </FontString>
+      </Layer>
+    </Layers>
+  </Frame>
+  <Frame name="ZebRaidDialog" hidden="true" parent="UIParent" movable="true" frameStrata="DIALOG" enableMouse="true" clampedToScreen="true">
+    <Size>
+      <AbsDimension x="760" y="680" />
+    </Size>
+    <Anchors>
+      <Anchor point="CENTER" />
+    </Anchors>
+    <Backdrop bgFile="Interface\DialogFrame\UI-DialogBox-Background" edgeFile="Interface\DialogFrame\UI-DialogBox-Border" tile="true">
+      <BackgroundInsets>
+        <AbsInset left="11" right="12" top="12" bottom="11" />
+      </BackgroundInsets>
+      <TileSize>
+        <AbsValue val="32" />
+      </TileSize>
+      <EdgeSize>
+        <AbsValue val="32" />
+      </EdgeSize>
+    </Backdrop>
+    <Layers>
+      <Layer>
+        <Texture name="$parentHeaderTexture" file="Interface\DialogFrame\UI-DialogBox-Header">
+          <Size>
+            <AbsDimension x="256" y="64" />
+          </Size>
+          <Anchors>
+            <Anchor point="TOP">
+              <Offset>
+                <AbsDimension x="0" y="12" />
+              </Offset>
+            </Anchor>
+          </Anchors>
+        </Texture>
+        <FontString name="$parentHeaderText" inherits="GameFontNormal" font="Fonts\FRIZQT__.TTF" text="ZebRaid">
+          <Anchors>
+            <Anchor point="TOP" relativeTo="$parentHeaderTexture">
+              <Offset>
+                <AbsDimension x="0" y="-14" />
+              </Offset>
+            </Anchor>
+          </Anchors>
+          <FontHeight>
+            <AbsValue val="12" />
+          </FontHeight>
+          <Color r="1" g="0.8196079" b="0" />
+          <Shadow>
+            <Color r="0" g="0" b="0" />
+            <Offset>
+              <AbsDimension x="1" y="-1" />
+            </Offset>
+          </Shadow>
+        </FontString>
+        <FontString name="$parentReportMaster" inherits="GameFontNormal" font="Fonts\FRIZQT__.TTF" text="REPORT_MASTER_NONE">
+          <Anchors>
+            <Anchor point="TOP" relativePoint="TOP">
+              <Offset>
+                <AbsDimension x="0" y="-44" />
+              </Offset>
+            </Anchor>
+          </Anchors>
+          <FontHeight>
+            <AbsValue val="12" />
+          </FontHeight>
+          <Color r="1" g="0.8196079" b="0" />
+          <Shadow>
+            <Color r="0" g="0" b="0" />
+            <Offset>
+              <AbsDimension x="1" y="-1" />
+            </Offset>
+          </Shadow>
+        </FontString>
+      </Layer>
+    </Layers>
+    <Frames>
+      <Button name="$parentClose" inherits="UIPanelButtonTemplate" text="X">
+        <Size>
+          <AbsDimension x="20" y="20"/>
+        </Size>
+        <Anchors>
+          <Anchor point="TOPRIGHT" relativePoint="TOPRIGHT">
+            <Offset>
+                <AbsDimension x="0" y="0" />
+            </Offset>
+          </Anchor>
+        </Anchors>
+        <Scripts>
+            <OnClick>
+                ZebRaid:Start();
+            </OnClick>
+        </Scripts>
+      </Button>
+      <Button name="$parentRaidSelection" inherits="UIDropDownMenuTemplate">
+        <Anchors>
+          <Anchor point="TOPRIGHT">
+            <Offset>
+              <AbsDimension x="-150" y="-30"/>
+            </Offset>
+          </Anchor>
+        </Anchors>
+        <Layers>
+          <Layer>
+            <FontString name="$parentText" inherits="GameFontNormal" text="Select Raid">
+                <Anchors>
+                    <Anchor point="RIGHT">
+                        <Offset>
+                            <AbsDimension x="-30" y="2"/>
+                        </Offset>
+                    </Anchor>
+                </Anchors>
+            </FontString>
+          </Layer>
+        </Layers>
+        <Scripts>
+          <OnShow>
+            ZebRaid:RaidSelection_OnShow()
+          </OnShow>
+        </Scripts>
+      </Button>
+      <Frame name="$parentPanel" inherits="OptionFrameBoxTemplate">
+        <!-- {{{ -->
+        <Size>
+          <AbsDimension x="700" y="425" />
+        </Size>
+        <Anchors>
+          <Anchor point="TOP">
+            <Offset>
+              <AbsDimension x="0" y="-60" />
+            </Offset>
+          </Anchor>
+        </Anchors>
+        <Frames>
+          <Frame name="$parentGuildList" inherits="ZebRaidDialogPlayerPoolTemplate">
+            <Anchors>
+              <Anchor point="TOPLEFT">
+                <Offset>
+                  <AbsDimension x="10" y="-12" />
+                </Offset>
+              </Anchor>
+            </Anchors>
+          </Frame>
+          <Frame name="$parentSignedUp" inherits="ZebRaidDialogPlayerPoolTemplate">
+            <Anchors>
+              <Anchor point="TOPLEFT" relativeTo="$parentGuildList" relativePoint="TOPRIGHT">
+                <Offset>
+                  <AbsDimension x="10" y="0" />
+                </Offset>
+              </Anchor>
+            </Anchors>
+          </Frame>
+          <Frame name="$parentUnsure" inherits="ZebRaidDialogPlayerPoolTemplate">
+            <Anchors>
+              <Anchor point="TOPLEFT" relativeTo="$parentSignedUp" relativePoint="TOPRIGHT">
+                <Offset>
+                  <AbsDimension x="10" y="0" />
+                </Offset>
+              </Anchor>
+            </Anchors>
+          </Frame>
+          <Frame name="$parentConfirmed" inherits="ZebRaidDialogPlayerPoolTemplate">
+            <Anchors>
+              <Anchor point="TOPLEFT" relativeTo="$parentUnsure" relativePoint="TOPRIGHT">
+                <Offset>
+                  <AbsDimension x="25" y="0" />
+                </Offset>
+              </Anchor>
+            </Anchors>
+          </Frame>
+          <Frame name="$parentReserved" inherits="ZebRaidDialogPlayerPoolTemplate">
+            <Anchors>
+              <Anchor point="TOPLEFT" relativeTo="$parentConfirmed" relativePoint="TOPRIGHT">
+                <Offset>
+                  <AbsDimension x="10" y="0" />
+                </Offset>
+              </Anchor>
+            </Anchors>
+          </Frame>
+          <Frame name="$parentPenalty" inherits="ZebRaidDialogPlayerSmallPoolTemplate">
+            <Anchors>
+              <Anchor point="TOPLEFT" relativeTo="$parentReserved" relativePoint="TOPRIGHT">
+                <Offset>
+                  <AbsDimension x="25" y="0" />
+                </Offset>
+              </Anchor>
+            </Anchors>
+          </Frame>
+          <Frame name="$parentSitout" inherits="ZebRaidDialogPlayerSmallPoolTemplate">
+            <Anchors>
+              <Anchor point="TOPLEFT" relativeTo="$parentPenalty" relativePoint="BOTTOMLEFT">
+                <Offset>
+                  <AbsDimension x="0" y="-14" />
+                </Offset>
+              </Anchor>
+            </Anchors>
+          </Frame>
+          <Button name="ZebRaidDialogButton1" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton2" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton3" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton4" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton5" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton6" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton7" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton8" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton9" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton10" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton11" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton12" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton13" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton14" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton15" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton16" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton17" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton18" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton19" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton20" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton21" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton22" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton23" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton24" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton25" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton26" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton27" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton28" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton29" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton30" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton31" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton32" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton33" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton34" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton35" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton36" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton37" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton38" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton39" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton40" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton41" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton42" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton43" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton44" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton45" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton46" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton47" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton48" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton49" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton50" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton51" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton52" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton53" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton54" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton55" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton56" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton57" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton58" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton59" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton60" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton61" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton62" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton63" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton64" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton65" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton66" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton67" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton68" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton69" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton70" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton71" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton72" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton73" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton74" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton75" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton76" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton77" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton78" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton79" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton80" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton81" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton82" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton83" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton84" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton85" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton86" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton87" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton88" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton89" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton90" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton91" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton92" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton93" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton94" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton95" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton96" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton97" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton98" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton99" inherits="ZebRaidDialogButtonTemplate" />
+          <Button name="ZebRaidDialogButton100" inherits="ZebRaidDialogButtonTemplate" />
+        </Frames>
+      </Frame>
+      <Frame name="$parentConfirmedStats" inherits="ZebRaidDialogStatsTemplate">
+        <Size>
+          <AbsDimension x="190" y="130" />
+        </Size>
+        <Anchors>
+          <Anchor point="TOPLEFT" relativeTo="$parentPanel" relativePoint="BOTTOMLEFT">
+            <Offset>
+              <AbsDimension x="0" y="-20" />
+            </Offset>
+          </Anchor>
+        </Anchors>
+      </Frame>
+      <Frame name="$parentTotalStats" inherits="ZebRaidDialogStatsTemplate">
+        <Size>
+          <AbsDimension x="190" y="130" />
+        </Size>
+        <Anchors>
+          <Anchor point="TOPLEFT" relativeTo="$parentConfirmedStats" relativePoint="TOPRIGHT">
+            <Offset>
+              <AbsDimension x="20" y="0" />
+            </Offset>
+          </Anchor>
+        </Anchors>
+      </Frame>
+      <Frame name="$parentCommands" inherits="OptionFrameBoxTemplate">
+        <Size>
+          <AbsDimension x="214" y="130" />
+        </Size>
+        <Anchors>
+          <Anchor point="LEFT" relativeTo="$parentTotalStats" relativePoint="RIGHT">
+            <Offset>
+              <AbsDimension x="20" y="0" />
+            </Offset>
+          </Anchor>
+        </Anchors>
+        <Frames>
+          <Button name="$parentAutoConfirm" inherits="UIPanelButtonTemplate" text="AUTOCONFIRM_LOCALE">
+            <Size>
+              <AbsDimension x="100" y="24"/>
+            </Size>
+            <Anchors>
+              <Anchor point="TOPLEFT">
+                <Offset>
+                    <AbsDimension x="7" y="-5" />
+                </Offset>
+              </Anchor>
+            </Anchors>
+            <Scripts>
+                <OnClick>
+                    ZebRaid:AutoConfirm();
+                </OnClick>
+            </Scripts>
+          </Button>
+          <Button name="$parentInviteRaid" inherits="UIPanelButtonTemplate" text="INVITECONFIRMED_LOCALE">
+            <Size>
+              <AbsDimension x="100" y="24"/>
+            </Size>
+            <Anchors>
+              <Anchor point="TOP" relativeTo="$parentAutoConfirm" relativePoint="BOTTOM">
+                <Offset>
+                    <AbsDimension x="0" y="-3" />
+                </Offset>
+              </Anchor>
+            </Anchors>
+            <Scripts>
+                <OnClick>
+                    ZebRaid:InviteConfirmed();
+                </OnClick>
+            </Scripts>
+          </Button>
+          <Button name="$parentGiveKarma" inherits="UIPanelButtonTemplate" text="KARMA_LOCALE">
+            <Size>
+              <AbsDimension x="100" y="24"/>
+            </Size>
+            <Anchors>
+              <Anchor point="TOP" relativeTo="$parentInviteRaid" relativePoint="BOTTOM">
+                <Offset>
+                    <AbsDimension x="0" y="-3" />
+                </Offset>
+              </Anchor>
+            </Anchors>
+            <Scripts>
+                <OnClick>
+                    ZebRaid:GiveKarma();
+                </OnClick>
+            </Scripts>
+          </Button>
+          <Button name="$parentAnnounce" inherits="UIPanelButtonTemplate" text="ANNOUNCE_LOCALE">
+            <Size>
+              <AbsDimension x="100" y="24"/>
+            </Size>
+            <Anchors>
+              <Anchor point="TOP" relativeTo="$parentGiveKarma" relativePoint="BOTTOM">
+                <Offset>
+                    <AbsDimension x="0" y="-3" />
+                </Offset>
+              </Anchor>
+            </Anchors>
+            <Scripts>
+                <OnClick>
+                    ZebRaid:Announce();
+                </OnClick>
+            </Scripts>
+          </Button>
+          <Button name="$parentReset" inherits="UIPanelButtonTemplate" text="RESET_LOCALE">
+            <Size>
+              <AbsDimension x="100" y="24"/>
+            </Size>
+            <Anchors>
+              <Anchor point="LEFT" relativeTo="$parentAutoConfirm" relativePoint="RIGHT">
+                <Offset>
+                    <AbsDimension x="5" y="0" />
+                </Offset>
+              </Anchor>
+            </Anchors>
+            <Scripts>
+                <OnClick>
+                    ZebRaid:Reset();
+                </OnClick>
+            </Scripts>
+          </Button>
+          <Button name="$parentSync" inherits="UIPanelButtonTemplate" text="SyncHist">
+            <Size>
+              <AbsDimension x="100" y="24"/>
+            </Size>
+            <Anchors>
+              <Anchor point="TOP" relativeTo="$parentReset" relativePoint="BOTTOM">
+                <Offset>
+                    <AbsDimension x="0" y="-3" />
+                </Offset>
+              </Anchor>
+            </Anchors>
+            <Scripts>
+                <OnClick>
+                    ZebRaid:SendCommMessage("GUILD", "BROADCAST");
+                </OnClick>
+            </Scripts>
+          </Button>
+          <Button name="$parentUnlock" inherits="UIPanelButtonTemplate" text="Become Master">
+            <Size>
+              <AbsDimension x="100" y="24"/>
+            </Size>
+            <Anchors>
+              <Anchor point="TOP" relativeTo="$parentSync" relativePoint="BOTTOM">
+                <Offset>
+                    <AbsDimension x="0" y="-3" />
+                </Offset>
+              </Anchor>
+            </Anchors>
+            <Scripts>
+                <OnClick>
+                    ZebRaid:OnUnlock();
+                </OnClick>
+            </Scripts>
+          </Button>
+          <Button name="$parentCloseRaid" inherits="UIPanelButtonTemplate" text="CLOSERAID_LOCALE">
+            <Size>
+              <AbsDimension x="100" y="24"/>
+            </Size>
+            <Anchors>
+              <Anchor point="TOP" relativeTo="$parentUnlock" relativePoint="BOTTOM">
+                <Offset>
+                    <AbsDimension x="0" y="-3" />
+                </Offset>
+              </Anchor>
+            </Anchors>
+            <Scripts>
+                <OnClick>
+                    ZebRaid:CloseRaid();
+                </OnClick>
+            </Scripts>
+          </Button>          
+        </Frames>
+      </Frame>
+    </Frames>
+    <Scripts>
+      <OnLoad>
+        table.insert(UISpecialFrames,this:GetName());
+      </OnLoad>
+      <OnMouseDown>
+        this:StartMoving();
+      </OnMouseDown>
+      <OnMouseUp> 
+        this:StopMovingOrSizing();
+      </OnMouseUp>
+      <OnDragStop>
+        this:StopMovingOrSizing();
+      </OnDragStop>
+      <OnUpdate>
+        ZebRaid:OnUpdate();
+      </OnUpdate>
+      <OnHide>
+        ZebRaid:OnHide();
+      </OnHide>
+    </Scripts>
+  </Frame>
+</Ui>
