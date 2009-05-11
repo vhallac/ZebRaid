@@ -80,7 +80,7 @@ function ZebRaid:OnInitialize()
 		libCfg:RegisterOptionsTable("ZebRaid", options, {"zebr", "zebraid"})
 	end
 
-	self:SetDebugging(false)
+	self:SetDebugging(true)
 
 	--
 	-- Set up the Dialog Labels {{{
@@ -1552,82 +1552,11 @@ function ZebRaid:Debug(...)
 	return debugEnabled and self:Print(date(), ": ", ...)
 end
 
-function ZebRaid:SetBossAndKarma(boss, karma)
-	ZebRaidDialogBoss:SetText(boss)
-	ZebRaidDialogKarma:SetText(tostring(karma))
-	self:Start()
-end
-
-function ZebRaid:GiveBossKarma()
-	-- If we can give karma ...
-	if not Karma_Add_Player then
-		DEFAULT_CHAT_FRAME:AddMessage(L["NO_KARMA_ADDON"])
-		return
-	end
-
-	if not KarmaConfig["CURRENT RAID"] then
-		DEFAULT_CHAT_FRAME:AddMessage(L["NO_KARMA_DB"])
-		return
-	end
-
-	local state = ZebRaidState[ZebRaidState.KarmaDB]
-
-	if not state or not state.Lists then return end
-
-	-- Get the boss name and karma amount
-	local boss = ZebRaidDialogBoss:GetText()
-	local karma = ZebRaidDialogKarma:GetText()
-
-	if not boss or boss == "" or
-		not karma or karma == ""
-	then
-		DEFAULT_CHAT_FRAME:AddMessage(L["NO_KARMA_DATA"])
-		return
-	end
-
-	-- Give on time karma to all raid members.
-	Karma_Add(karma .. " all " .. boss, "P")
-
-	for pos, name in pairs(state.Lists["Sitout"].members) do
-		-- Only confirmed people who are in raid deserve online karma. :-)
-		if not self:IsPlayerInRaid(name) and
-		   ( Guild:IsMemberOnline(name) or
-		     self:IsAltOnline(name) )
-		then
-			Karma_Add(karma .. " " .. name .. " " .. boss, "P")
-		end
-	end
-end
-
 if DBM then
 	local DBMold = DBM.EndCombat
-	local BossKarmaLookup = {
-		["Anub'Rekhan"] = 5,
-		["Faerlina"] = 5,
-		["Maexxna"] = 5,
-		["Gluth"] = 5,
-		["Grobbulus"] = 5,
-		["Patchwerk"] = 5,
-		["Thaddius"] = 5,
-		["Gothik"] = 5,
-		["Horsemen"] = 5,
-		["Razuvious"] = 5,
-		["Heigan"] = 5,
-		["Loatheb"] = 5,
-		["Noth"] = 5,
-		["Sapphiron"] = 5,
-		["Kel'Thuzad"] = 10,
-		["Archavon"] = 10,
-		["Sartharion"] = 10,
-		["Malygos"] = 10,
-	}
-
 
 	DBM.EndCombat = function (self, mod, wipe)
-		if ZebRaidState.KarmaDB and GetCurrentDungeonDifficulty() == 2 and BossKarmaLookup[mod.id] and not wipe then
-			ZebRaid:SetBossAndKarma(mod.id, BossKarmaLookup[mod.id])
-		end
-
+		ZebRaid:Debug(mod.id, wipe and "true" or "false")
 		DBMold(self, mod,wipe)
 	end
 end

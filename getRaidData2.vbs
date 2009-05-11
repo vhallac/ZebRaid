@@ -41,7 +41,7 @@ Function ReadPage(URL, cookies)
     ReadPage = PageText
 End Function
 
-Function ScrapeSection(table, message)
+Function ScrapeSection(table, message, defRole)
 
     scraped = ""
     iName = -1
@@ -87,6 +87,8 @@ Function ScrapeSection(table, message)
             If e <> 0 then
                 attendRole = Left(attendRole, e-1)
             End If
+        Else
+            attendRole = defRole
         End If
 
         scraped = scraped & "    """
@@ -171,20 +173,28 @@ Function ScrapeRaidData(PageText)
     Set content = oDoc.getElementById("contentContainer")
     set divs = content.getElementsByTagName("div")
 
+    Dim roles(4)
+    roles(0) = "melee"
+    roles(1) = "ranged"
+    roles(2) = "tank"
+    roles(3) = "healer"
     For mx = 0 To divs.Length - 1
         if divs(mx).className = "contentHeader" then
             hdrText = divs(mx).InnerText
             Set sectionTbls = divs(mx+1).getElementsByTagName("table")
-            if left(hdrText, 5) = "melee" or _
-               left(hdrText, 6) = "ranged" or _
-               left(hdrText, 4) = "tank" or _
-               left(hdrText, 6) = "hybrid" or _
-               left(hdrText, 6) = "healer" then
-                scraped = scraped & ScrapeSection(sectionTbls(0), "signed")
+            role = ubound(roles)
+            for rl = 0 to ubound(roles) - 1
+                if left(hdrText, len(roles(rl))) = roles(rl) then
+                    role = rl
+                    exit for
+                end if
+            next
+            if role < ubound(roles) then
+                scraped = scraped & ScrapeSection(sectionTbls(0), "signed", roles(role))
             Elseif left(hdrText,6) = "Queued" then
-                scraped = scraped & ScrapeSection(sectionTbls(0), "unsure")
+                scraped = scraped & ScrapeSection(sectionTbls(0), "unsure", "unknown")
             Elseif left(hdrText,9) = "Cancelled" then
-                scraped = scraped & ScrapeSection(sectionTbls(0), "unsigned")
+                scraped = scraped & ScrapeSection(sectionTbls(0), "unsigned", "unknown")
             End If
         End If
     Next

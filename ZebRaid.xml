@@ -56,9 +56,9 @@
             GameTooltip:AddDoubleLine(this.tooltipDblLine.left,
                                       this.tooltipDblLine.right,
                                       NORMAL_FONT_COLOR.r,
-                                      NORMAL_FONT_COLOR.g, 
-                                      NORMAL_FONT_COLOR.b, 
-                                      HIGHLIGHT_FONT_COLOR.r, 
+                                      NORMAL_FONT_COLOR.g,
+                                      NORMAL_FONT_COLOR.b,
+                                      HIGHLIGHT_FONT_COLOR.r,
                                       HIGHLIGHT_FONT_COLOR.g,
                                       HIGHLIGHT_FONT_COLOR.b);
           end
@@ -391,7 +391,7 @@
   </Frame>
   <Frame name="ZebRaidDialogStatsTemplate" virtual="true" inherits="OptionsBoxTemplate">
     <Size>
-      <AbsDimension x="190" y="130" />
+      <AbsDimension x="190" y="108" />
     </Size>
     <Anchors>
       <Anchor point="TOPLEFT" relativeTo="$parentPanel" relativePoint="BOTTOMLEFT">
@@ -478,30 +478,11 @@
             </Offset>
           </Shadow>
         </FontString>
-        <FontString name="$parentHybrid" inherits="GameFontNormal" font="Fonts\FRIZQT__.TTF" text="HYBRID_LOCALE: 0">
-          <Anchors>
-            <Anchor point="TOPLEFT" relativeTo="$parentRanged" relativePoint="BOTTOMLEFT">
-              <Offset>
-                <AbsDimension x="0" y="-8" />
-              </Offset>
-            </Anchor>
-          </Anchors>
-          <FontHeight>
-            <AbsValue val="12" />
-          </FontHeight>
-          <Color r="1" g="0.8196079" b="0" />
-          <Shadow>
-            <Color r="0" g="0" b="0" />
-            <Offset>
-              <AbsDimension x="1" y="-1" />
-            </Offset>
-          </Shadow>
-        </FontString>		
         <FontString name="$parentTotal" inherits="GameFontLarge" font="Fonts\FRIZQT__.TTF" text="TOTAL_LOCALE: 0">
           <Anchors>
-            <Anchor point="BOTTOM" relativePoint="BOTTOM">
+            <Anchor point="BOTTOMRIGHT" relativePoint="BOTTOMRIGHT">
               <Offset>
-                <AbsDimension x="0" y="8" />
+                <AbsDimension x="-10" y="8" />
               </Offset>
             </Anchor>
           </Anchors>
@@ -815,9 +796,6 @@
         </Frames>
       </Frame>
       <Frame name="$parentConfirmedStats" inherits="ZebRaidDialogStatsTemplate">
-        <Size>
-          <AbsDimension x="190" y="130" />
-        </Size>
         <Anchors>
           <Anchor point="TOPLEFT" relativeTo="$parentPanel" relativePoint="BOTTOMLEFT">
             <Offset>
@@ -827,9 +805,6 @@
         </Anchors>
       </Frame>
       <Frame name="$parentTotalStats" inherits="ZebRaidDialogStatsTemplate">
-        <Size>
-          <AbsDimension x="190" y="130" />
-        </Size>
         <Anchors>
           <Anchor point="TOPLEFT" relativeTo="$parentConfirmedStats" relativePoint="TOPRIGHT">
             <Offset>
@@ -985,9 +960,146 @@
                     ZebRaid:CloseRaid();
                 </OnClick>
             </Scripts>
-          </Button>          
+          </Button>
         </Frames>
       </Frame>
+      <EditBox name="$parentBoss" autoFocus="false" historyLines="1" letters="100">
+        <Size>
+          <AbsDimension x="190" y="32"/>
+        </Size>
+        <Anchors>
+          <Anchor point="TOPLEFT" relativeTo="$parentConfirmedStats" relativePoint="BOTTOMLEFT">
+            <Offset>
+              <AbsDimension x="2" y="-20"/>
+            </Offset>
+          </Anchor>
+        </Anchors>
+        <Layers>
+          <Layer level="BACKGROUND">
+            <Texture name="$parentLeft" file="Interface\Common\Common-Input-Border">
+              <Size>
+                <AbsDimension x="8" y="28"/>
+              </Size>
+              <Anchors>
+                <Anchor point="TOPLEFT">
+                  <Offset>
+                    <AbsDimension x="-8" y="0"/>
+                  </Offset>
+                </Anchor>
+              </Anchors>
+              <TexCoords left="0" right="0.0625" top="0" bottom="0.625"/>
+            </Texture>
+            <Texture name="$parentMiddle" file="Interface\Common\Common-Input-Border">
+              <Size>
+                <AbsDimension x="190" y="28"/>
+              </Size>
+              <Anchors>
+                <Anchor point="LEFT" relativeTo="$parentLeft" relativePoint="RIGHT"/>
+              </Anchors>
+              <TexCoords left="0.0625" right="0.9375" top="0" bottom="0.625"/>
+            </Texture>
+            <Texture name="$parentRight" file="Interface\Common\Common-Input-Border">
+              <Size>
+                <AbsDimension x="8" y="28"/>
+              </Size>
+              <Anchors>
+                <Anchor point="LEFT" relativeTo="$parentMiddle" relativePoint="RIGHT"/>
+              </Anchors>
+              <TexCoords left="0.9375" right="1.0" top="0" bottom="0.625"/>
+            </Texture>
+          </Layer>
+        </Layers>
+        <Scripts>
+          <OnShow>
+            this:ClearFocus();
+          </OnShow>
+          <OnEscapePressed>
+            this:ClearFocus();
+          </OnEscapePressed>
+          <OnEnterPressed>
+            this:ClearFocus();
+          </OnEnterPressed>
+        </Scripts>
+        <FontString inherits="ChatFontNormal" />
+      </EditBox>
+      <EditBox name="$parentKarma" autoFocus="false" historyLines="1" letters="4">
+        <Size>
+          <AbsDimension x="30" y="32"/>
+        </Size>
+        <Anchors>
+          <Anchor point="LEFT" relativeTo="$parentBoss" relativePoint="RIGHT">
+            <Offset>
+              <AbsDimension x="20" y="0"/>
+            </Offset>
+          </Anchor>
+        </Anchors>
+        <Layers>
+          <Layer level="BACKGROUND">
+            <Texture name="$parentLeft" file="Interface\Common\Common-Input-Border">
+              <Size>
+                <AbsDimension x="8" y="28"/>
+              </Size>
+              <Anchors>
+                <Anchor point="TOPLEFT">
+                  <Offset>
+                    <AbsDimension x="-8" y="0"/>
+                  </Offset>
+                </Anchor>
+              </Anchors>
+              <TexCoords left="0" right="0.0625" top="0" bottom="0.625"/>
+            </Texture>
+            <Texture name="$parentMiddle" file="Interface\Common\Common-Input-Border">
+              <Size>
+                <AbsDimension x="30" y="28"/>
+              </Size>
+              <Anchors>
+                <Anchor point="LEFT" relativeTo="$parentLeft" relativePoint="RIGHT"/>
+              </Anchors>
+              <TexCoords left="0.0625" right="0.9375" top="0" bottom="0.625"/>
+            </Texture>
+            <Texture name="$parentRight" file="Interface\Common\Common-Input-Border">
+              <Size>
+                <AbsDimension x="8" y="28"/>
+              </Size>
+              <Anchors>
+                <Anchor point="LEFT" relativeTo="$parentMiddle" relativePoint="RIGHT"/>
+              </Anchors>
+              <TexCoords left="0.9375" right="1.0" top="0" bottom="0.625"/>
+            </Texture>
+          </Layer>
+        </Layers>
+        <Scripts>
+          <OnShow>
+            this:ClearFocus();
+          </OnShow>
+          <OnEscapePressed>
+            this:ClearFocus();
+          </OnEscapePressed>
+          <OnEnterPressed>
+            this:ClearFocus();
+          </OnEnterPressed>
+        </Scripts>
+        <FontString inherits="ChatFontNormal" />
+      </EditBox>
+      <Button name="$parentGiveKarma" inherits="UIPanelButtonTemplate" text="X">
+        <Size>
+          <AbsDimension x="100" y="24"/>
+        </Size>
+        <Anchors>
+          <Anchor point="LEFT" relativeTo="$parentKarma" relativePoint="RIGHT">
+            <Offset>
+                <AbsDimension x="12" y="1" />
+            </Offset>
+          </Anchor>
+        </Anchors>
+        <Scripts>
+            <OnClick>
+                ZebRaid:GiveBossKarma();
+            </OnClick>
+        </Scripts>
+      </Button>
+
+
     </Frames>
     <Scripts>
       <OnLoad>
@@ -996,7 +1108,7 @@
       <OnMouseDown>
         this:StartMoving();
       </OnMouseDown>
-      <OnMouseUp> 
+      <OnMouseUp>
         this:StopMovingOrSizing();
       </OnMouseUp>
       <OnDragStop>

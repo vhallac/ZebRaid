@@ -4,7 +4,7 @@
 ## DefaultState: Enabled
 ## SavedVariables: ZebRaidState, ZebRaidPlayerData, ZebRaidTrackerData
 ## LoadOnDemand: 0
-## OptionalDeps: Ni_Karma
+## OptionalDeps: Ni_Karma, DBM-Core
 
 embeds.xml
 

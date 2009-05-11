@@ -1,10 +1,12 @@
 ZebRaid.AltOnline = {}
 ZebRaid.CurrentAlt = {}
+-- People we assume to be trackers
+local FixedTrackers = {"Dys", "Beh", "Jiny", "Karadine", "Iceberg"}
 
 local hTimer = nil
 
 function ZebRaid:Tracker_Init()
-	self:RegisterEvent("VARIABLES_LOADED", "Tracker_OnVariablesLoaded")
+	self:RegisterEvent("PLAYER_LOGIN", "Tracker_OnPlayerLogin")
 	self:RegisterEvent("PLAYER_LOGOUT", "Tracker_OnPlayerLogout")
 	hTimer = self:ScheduleRepeatingTimer("Tracker_PingTimer", 20)
 end
@@ -13,10 +15,10 @@ function ZebRaid:Tracker_Final()
 	self:CancelTimer(hTimer)
 	hTimer = nil
 	self:UnregisterEvent("PLAYER_LOGOUT", "Tracker_OnPlayerLogout")
-	self:UnregisterEvent("VARIABLES_LOADED", "Tracker_OnVariablesLoaded")
+	self:UnregisterEvent("PLAYER_LOGIN", "Tracker_OnPlayerLogin")
 end
 
--- Tell the player's tracker addon to mark 
+-- Tell the player's tracker addon to mark
 function ZebRaid:Tracker_SetPlayerMain(name)
 	if name == UnitName("PLAYER") then
 		self:OnSETMAIN(UnitName("PLAYER"))
@@ -77,6 +79,19 @@ function ZebRaid:Tracker_GetCurrentAlt(name)
 	return self.CurrentAlt[name]
 end
 
+function ZebRaid:Tracker_QueryPresence(name)
+	self:WhisperComm(name, "TRACKER_QUERY")
+end
+
+function ZebRaid:SendToTrackers(...)
+	if ZebRaidTrackerData.TrackerName then
+		self:WhisperComm(ZebRaidTrackerData.TrackerName, ...)
+	end
+	for _,name in ipairs(FixedTrackers) do
+		self:WhisperComm(name, ...)
+	end
+end
+
 ---------------------
 -- EVENT HANDLERS  --
 ---------------------
@@ -88,14 +103,12 @@ function ZebRaid:Tracker_PingTimer()
 	end
 end
 
-function ZebRaid:Tracker_OnVariablesLoaded()
+function ZebRaid:Tracker_OnPlayerLogin()
 	if ZebRaidTrackerData.TrackerName then
 		if ZebRaidTrackerData.MainName and
 		   ZebRaidTrackerData.MainName ~= UnitName("player")
 		then
-			self:WhisperComm(ZebRaidTrackerData.TrackerName,
-			                 "ALTLOGGEDIN",
-			                 ZebRaidTrackerData.MainName)
+			self:SendToTrackers("ALTLOGGEDIN", ZebRaidTrackerData.MainName)
 		end
 	end
 end
@@ -105,9 +118,7 @@ function ZebRaid:Tracker_OnPlayerLogout()
 		if ZebRaidTrackerData.MainName and
 		   ZebRaidTrackerData.MainName ~= UnitName("player")
 		then
-			self:WhisperComm(ZebRaidTrackerData.TrackerName,
-			                 "ALTLOGGEDOUT",
-			                 ZebRaidTrackerData.MainName)
+			self:SendToTrackers("ALTLOGGEDOUT", ZebRaidTrackerData.MainName)
 		end
 	end
 end
@@ -127,16 +138,21 @@ function ZebRaid:OnSETTRACKER(sender, name)
 	   ZebRaidTrackerData.MainName ~= UnitName("player")
 	then
 		self:WhisperComm(ZebRaidTrackerData.TrackerName,
-			                 "ALTLOGGEDIN",
-			                 ZebRaidTrackerData.MainName)
+		                 "ALTLOGGEDIN",
+		                 ZebRaidTrackerData.MainName)
 	end
 end
 
 function ZebRaid:OnALTLOGGEDIN(sender, mainName)
+	self:Debug("Received ALTLOGGEDIN from", sender, "for", mainName)
 	-- TODO: If I am no longer the master, tell the alt to talk to the new master
 	if ZebRaidPlayerData[mainName] then
+		if not ZebRaidPlayerData[mainName].AltList then
+			ZebRaidPlayerData[mainName].AltList = {}
+		end
 		ZebRaidPlayerData[mainName].AltList[sender] = true
 		self.AltOnline[mainName] = true
+		self.CurrentAlt[mainName] = sender
 	end
 end
 
@@ -146,9 +162,15 @@ function ZebRaid:OnALTLOGGEDOUT(sender, mainName)
 end
 
 function ZebRaid:OnTRACKER_PING(sender)
-	self:WhisperComm(sender, "TRACKER_PONG")
+	self:WhisperComm(sender, "TRACKER_PONG", ZebRaidTrackerData.MainName)
 end
 
-function ZebRaid:OnTRACKER_PONG(sender)
-	self.AltOnline[sender] = true
+function ZebRaid:OnTRACKER_PONG(sender, mainName)
+	if mainName then
+		self.AltOnline[mainName] = true
+	end
+end
+
+function ZebRaid:OnTRACKER_QUERY(sender)
+	self:SendComm("WHISPER", sender, "ALTLOGGEDIN", ZebRaidTrackerData.MainName)
 end

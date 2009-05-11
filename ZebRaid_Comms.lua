@@ -29,10 +29,10 @@ end
 
 function ZebRaid:OnCommReceived(prefix, msgRaw, distribution, sender)
 	if prefix ~= CommPrefix then return end
-
+	
 	-- Ignore our own broadcasts
 	if sender == GetUnitName("player") then return end
-
+	
 	local msg = {S:Deserialize(msgRaw)}
 	if not msg[1] then
 		DEFAULT_CHAT_FRAME:AddMessage("ZebRaid ERROR: Cannot unpack comms message")
@@ -58,7 +58,7 @@ function ZebRaid:OnBROADCAST(sender)
 
 		--[[
 		ZebRaid:SendCommMessage("GUILD", "I_IS_MASTER",
-								ZebRaidState.KarmaDB, state.RaidID,
+								ZebRaidState.KarmaDB, state.RaidID, 
 								state.RegisteredUsers,
 								state.Lists)
 		]]--
@@ -71,14 +71,14 @@ function ZebRaid:OnBROADCAST(sender)
 			table.insert(removeDBs, db)
 		end
 	end
-
+	
 	for pos, db in pairs(removeDBs) do
 		ZebRaid.UIMasters[db] = nil
 		if ZebRaidState.KarmaDB == db then
 			ZebRaid:LockUI()
 		end
 	end
-
+	
 	--self:SendCommMessage("WHISPER", sender, "REQUESTDATA")
 	--self:SendCommMessage("WHISPER", sender, "ACKNOWLEDGE")
 end
@@ -118,10 +118,10 @@ function ZebRaid.OnANNOUNCE_MASTER(sender, KarmaDB, RaidID, RegisteredUsers, Lis
 	ZebRaidState[KarmaDB].RegisteredUsers = RegisteredUsers
 	ZebRaidState[KarmaDB].Lists = Lists
 	ZebRaid.UIMasters[KarmaDB] = sender
-
+	
 	if (ZebRaidState.KarmaDB == KarmaDB) then
 		local state = ZebRaidState[KarmaDB]
-
+		
 		ZebRaidDialogPanelTitle:SetText(L["RAID_ID"] .. state.RaidID)
 		ZebRaidDialogReportMaster:SetText(L["REPORT_MASTER_OTHER"] .. sender)
 		ZebRaid:ShowListMembers()
@@ -135,7 +135,7 @@ function ZebRaid:OnADD_TO_LIST(sender, KarmaDB, listName, name)
 
 	if state and state.Lists then
 		local list = state.Lists[listName]
-
+		
 		if list then
 			ZebRaid:AddToList(state, list, name)
 		end

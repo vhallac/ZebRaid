@@ -44,4 +44,5 @@ L["CLOSECONFIRMATION"] = "You do not own the data for this raid. Are you sure yo
 L["CLOSERAID"] = "Close Raid"
 L["PENALTY"] = "Penalty"
 L["SITOUT"] = "Sitout"
-
+L["ALT_ONLINE"] = "On alt: "
+L["NO_KARMA_DATA"] = "Either the boss name or karma amount is empty."
