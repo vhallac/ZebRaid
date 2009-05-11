@@ -51,6 +51,11 @@ function ZebRaid:AddToList(state, list, name)
 			-- otherwise insert player to the end.
 			table.insert(destList.members, name);
 		end
+		if destList.name == "Sitout" then
+			self:AddSitout(name)
+		elseif destList.name == "Penalty" then
+			self:AddPenalty(name)
+		end
 	end
 end
 
@@ -76,6 +81,11 @@ function ZebRaid:RemoveFromList(state, list, nameOrPos)
 
 	-- First, get rid of the member
 	table.remove(list.members, pos);
+	if list.name == "Sitout" then
+		self:RemoveSitout(name)
+	elseif list.name == "Penalty" then
+		self:RemovePenalty(name)
+	end
 end
 
 -- Find a suitable target list for the specified player name inside the
@@ -129,12 +139,12 @@ function ZebRaid:FindTargetList(list, name)
 		destList = state.Lists["SignedUp"];
 	end
 
-	-- If the guy has a penalty, he moves to sitout 
+	-- If the guy has a penalty, he moves to sitout
 	-- regardless of the current selection
 --	if stats and (stats.penalties > 0) then
 --		destList = self.Lists["Sitout"];
 --	end
-	
+
 	return destList;
 end
 

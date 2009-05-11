@@ -762,8 +762,9 @@ function ZebRaid:CloseRaid()
 end
 
 function ZebRaid:DoCloseRaid(state)
+	-- TODO: Remove the function ... again
 	state.RaidClosed = true
-	state.RaidCloseTime = date("%x")
+	state.RaidCloseTime = self:GetRaidDate()
 
 	local playerStats = self.PlayerStats[karmaDB]
 
@@ -862,7 +863,9 @@ function ZebRaid:InitializeListContents(state)
 	for name in Guild:GetIterator("NAME", false) do
 		if (Guild:GetLevel(name) == 80 and
 			not (state.RegisteredUsers[name] and
-				 state.RegisteredUsers[name].list))
+				 state.RegisteredUsers[name].list) and
+			not (self:FindInTable(state.Lists["Confirmed"].members, name) or
+				 self:FindInTable(state.Lists["Reserved"].members, name)) )
 		then
 			-- If online player has ever signed up, tell them that they are main chars
 			if ZebRaidPlayerData[name] then
@@ -1027,10 +1030,26 @@ end
 -- Find a list position in the list members where a new player should be inserted
 -- according to its sitoutPos value. The list must already be sorted by the sitoutInsertPos
 function ZebRaid:FindSitoutInsertPos(list, name)
-	local playerSitoutPos = self:GetPlayerSitoutPos(name)
+	--local playerSitoutPos = self:GetPlayerSitoutPos(name)
+	local playerSitoutCount = ZebRaidPlayerData[name] and ZebRaidPlayerData[name].sitoutCount or 0
+	local playerLastSitoutDate = self:GetLastSitoutDate(name)
+	local playerLastPenaltyDate = self:GetLastPenaltyDate(name)
+	local playerHasPenalty = playerLastPenaltyDate > playerLastSitoutDate
+	local playerRole = RoleLetters[self:GetPlayerRole(name)] or "X"
 	local insertPos = nil
-	for pos, val in pairs(list.members) do
-		if playerSitoutPos > self:GetPlayerSitoutPos(val) then
+	local curLastSitoutDate, curRole
+	local curLastPenaltyDate, curHasPenalty
+	for pos, val in ipairs(list.members) do
+		curSitoutCount = ZebRaidPlayerData[val] and ZebRaidPlayerData[val].sitoutCount or 0
+		curLastSitoutDate = self:GetLastSitoutDate(val)
+		curLastPenaltyDate = self:GetLastPenaltyDate(val)
+		curHasPenalty = curLastPenaltyDate > curLastSitoutDate
+		curRole = RoleLetters[self:GetPlayerRole(val)] or "X"
+		if playerRole < curRole or
+		   (playerRole == curRole and playerHasPenalty) or
+		   (playerRole == curRole and playerLastSitoutDate < curLastSitoutDate and not curHasPenalty) or
+		   (playerRole == curRole and playerLastSitoutDate == curLastSitoutDate and playerSitoutCount < curSitoutCount and not curHasPenalty)
+		then
 			insertPos = pos
 			break
 		end
@@ -1044,7 +1063,81 @@ function ZebRaid:GetSitoutDates(name)
 	return ZebRaidPlayerData[name] and ZebRaidPlayerData[name].sitoutDates or EmptyTable;
 end
 
-function ZebRaid:GetSitoutDateIterator(name)
+function ZebRaid:GetLastSitoutDate(name)
+	local dates = self:GetSitoutDates(name)
+	return dates[#dates] or "01/01/09"
+end
+
+function ZebRaid:GetPenaltyDates(name)
+	return ZebRaidPlayerData[name] and ZebRaidPlayerData[name].penaltyDates or EmptyTable;
+end
+
+function ZebRaid:GetLastPenaltyDate(name)
+	local dates = self:GetPenaltyDates(name)
+	return dates[#dates] or "01/01/09"
+end
+
+function ZebRaid:GetRaidDate()
+	local raidId = ZebRaidState[ZebRaidState.KarmaDB].RaidID
+	_,_,d,m,y=string.find(raidId, ".*_(%d+).(%d+).20(%d+)")
+	return string.format("%02d/%02d/%02d",d,m,y)
+end
+
+function ZebRaid:AddSitout(name)
+	-- TODO: Extract date from RaidID and reformat
+	local curDate = self:GetRaidDate()
+	local stat = ZebRaidPlayerData[name]
+	local lastSitout = self:GetLastSitoutDate(name)
+	if stat and curDate ~= lastSitout then -- This should always be true
+		if not stat.sitoutDates then
+			stat.sitoutDates = {}
+		end
+		table.insert(stat.sitoutDates, curDate)
+		stat.sitoutCount = (stat.sitoutCount or 0)+ 1
+	end
+end
+
+function ZebRaid:RemoveSitout(name)
+	local curDate = self:GetRaidDate()
+	local stat = ZebRaidPlayerData[name]
+	local lastSitout = self:GetLastSitoutDate(name)
+	if stat and lastSitout == curDate then -- This should always be true
+		if stat.sitoutDates then -- Ditto
+			table.remove(stat.sitoutDates, #stat.sitoutDates)
+			if #stat.sitoutDates == 0 then
+				stat.sitoutDates = nil
+			end
+		end
+		stat.sitoutCount = stat.sitoutCount - 1
+	end
+end
+
+function ZebRaid:AddPenalty(name)
+	local curDate = self:GetRaidDate()
+	local stat = ZebRaidPlayerData[name]
+	local lastPenalty = self:GetLastPenaltyDate(name)
+	if stat and lastPenalty ~= curDate then -- This should always be true
+		if not stat.penaltyDates then
+			stat.penaltyDates = {}
+		end
+		table.insert(stat.penaltyDates, curDate)
+		stat.penaltyCount = (stat.penaltyCount or 0) + 1
+	end
+end
+
+function ZebRaid:RemovePenalty(name)
+	local curDate = self:GetRaidDate()
+	local stat = ZebRaidPlayerData[name]
+	local lastPenalty = self:GetLastPenaltyDate(name)
+	if stat and lastPenalty == curDate then -- This should always be true
+		if stat.penaltyDates then -- Ditto
+			table.remove(stat.penaltyDates, #stat.penaltyDates)
+			if #stat.penaltyDates == 0 then
+				stat.penaltyDates = nil
+			end
+		end
+		stat.penaltyCount = stat.penaltyCount - 1
+	end
 end
 
 function ZebRaid:ShowListMembers()
@@ -1251,7 +1344,7 @@ function ZebRaid:SetButtonTooltip(button, list, name)
 		right = Guild:GetClass(name)
 	}
 
-	button.tooltipText = "Rank: " .. Guild:GetRank(name) .. "\n"
+	button.tooltipText = "Rank: " .. (Guild:GetRank(name) or "not in guild") .. "\n"
 	if Guild:GetNote(name) then
 		button.tooltipText = button.tooltipText ..
 							 Guild:GetNote(name) .. "\n\n"
@@ -1301,7 +1394,12 @@ function ZebRaid:SetButtonTooltip(button, list, name)
 	local sitoutDates = self:GetSitoutDates(name)
 	for _,v in ipairs(sitoutDates) do
 		button.tooltipText = button.tooltipText ..
-							"|c7f1fef00" .. v .. "|r\n"
+							"|c7f1fcf00" .. v .. "|r\n"
+	end
+	local penaltyDates = self:GetPenaltyDates(name)
+	for _,v in ipairs(penaltyDates) do
+		button.tooltipText = button.tooltipText ..
+							"|cdf1f1f00" .. v .. "|r\n"
 	end
 end
 
@@ -1604,10 +1702,12 @@ function ZebRaid:GiveBossKarma()
 
 	for pos, name in pairs(state.Lists["Sitout"].members) do
 		-- Only confirmed people who are in raid deserve online karma. :-)
-		if not self:IsPlayerInRaid(name) and
+--[[		if not self:IsPlayerInRaid(name) and
 		   ( Guild:IsMemberOnline(name) or
 		     self:IsAltOnline(name) )
-		then
+		Just give everyone in sitout list the karma if they are not already in raid
+]]--
+		if not self:IsPlayerInRaid(name) then
 			Karma_Add(karma .. " " .. name .. " " .. boss, "P")
 		end
 	end

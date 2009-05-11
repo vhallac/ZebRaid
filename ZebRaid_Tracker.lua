@@ -118,7 +118,7 @@ function ZebRaid:Tracker_OnPlayerLogout()
 		if ZebRaidTrackerData.MainName and
 		   ZebRaidTrackerData.MainName ~= UnitName("player")
 		then
-			self:SendToTrackers("ALTLOGGEDOUT", ZebRaidTrackerData.MainName)
+			-- self:SendToTrackers("ALTLOGGEDOUT", ZebRaidTrackerData.MainName)
 		end
 	end
 end
