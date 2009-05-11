@@ -1,5 +1,5 @@
 -- Libraries we want to use in this file
-local RollCall = Rock("LibRollCall-2.0")
+local Guild = LibStub("LibGuild-1.0")
 
 -- Find the position of a value in a table.
 function ZebRaid:FindInTable(tbl, name)
@@ -42,7 +42,7 @@ function ZebRaid:AddToList(state, list, name)
     if list.name == "Confirmed" then
         insertPos = self:FindClassInsertPos(list, name);
     elseif list.name == "GuildList" then
-        if not RollCall:IsMemberOnline(name) then
+        if not Guild:IsMemberOnline(name) then
             destList = nil;
         end
     end
@@ -117,7 +117,7 @@ function ZebRaid:FindTargetList(list, name)
     --              Unregistered => GuildList
 
     if ( list.name == "SignedUp" ) then
-        if RollCall:IsMemberOnline(name) then
+        if Guild:IsMemberOnline(name) then
             destList = state.Lists["Confirmed"];
         else
             destList = state.Lists["Reserved"];
@@ -125,7 +125,7 @@ function ZebRaid:FindTargetList(list, name)
     -- SignedUp or Unsure: online and sitout => Confirmed
     --                     offline => Reserved
     elseif list.name == "Unsure" then
-        if RollCall:IsMemberOnline(name) then
+        if Guild:IsMemberOnline(name) then
             destList = state.Lists["Confirmed"];
         else
             destList = state.Lists["Reserved"];

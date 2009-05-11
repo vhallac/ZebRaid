@@ -1,7 +1,7 @@
 ﻿ZebRaid = AceLibrary("AceAddon-2.0"):new("AceConsole-2.0", "AceDebug-2.0",
 "AceDB-2.0", "AceEvent-2.0", "AceComm-2.0");
 local L = AceLibrary("AceLocale-2.2"):new("ZebRaid");
-local RollCall = Rock("LibRollCall-2.0")
+local Guild = LibStub("LibGuild-1.0")
 local Roster = AceLibrary("Roster-2.1");
 
 local options = {
@@ -206,11 +206,12 @@ end
 function ZebRaid:OnEnable()
     PlayerName, _ = UnitName("player");
 
-    self:RegisterEvent("RollCall10_MemberDisconnected");
-    self:RegisterEvent("RollCall10_MemberConnected");
-    self:RegisterEvent("RollCall10_MemberAdded");
-    self:RegisterEvent("RollCall10_MemberRemoved");
-    self:RegisterEvent("RollCall10_Updated");
+    Guild.RegisterCallback(self, "Update", "GuildStatusUpdated")
+    Guild.RegisterCallback(self, "Added", "MemberAdded")
+    Guild.RegisterCallback(self, "Removed", "MemberRemoved")
+    Guild.RegisterCallback(self, "Connected", "MemberConnected")
+    Guild.RegisterCallback(self, "Disconnected", "MemberDisconnected")
+
     self:RegisterEvent("RosterLib_RosterUpdated");
 
     if not UnitInRaid("player") then
@@ -269,7 +270,7 @@ function ZebRaid:ParseLocalRaidData()
             note = nil;
         end
 
-        if RollCall:HasMember(name) then
+        if Guild:HasMember(name) then
             -- If we didn't gkick the user since sign-up, add him to the RegisteredUsers table
             self.RegisteredUsers[name] = {
                 status = status,
@@ -487,7 +488,7 @@ function ZebRaid:PlayerOnDragStop()
         -- If player is offline, and the target list is online list, then
         -- do not add to the target list.
         if list.name ~= "GuildList" or
-           RollCall:IsMemberOnline(this.player)
+           Guild:IsMemberOnline(this.player)
         then
             self:AddToList(state, list, this.player);
             self:SendCommMessage("GUILD", "ADD_TO_LIST", ZebRaidState.KarmaDB, list.name, this.player);
@@ -517,7 +518,7 @@ function ZebRaid:PlayerOnDoubleClick()
         -- If player is offline, and the target list is online list, then
         -- do not add to the target list.
         if list.name ~= "GuildList" or
-           RollCall:IsMemberOnline(this.player)
+           Guild:IsMemberOnline(this.player)
         then
             self:AddToList(state, list, this.player);
             self:SendCommMessage("GUILD", "ADD_TO_LIST", ZebRaidState.KarmaDB, list.name, this.player);
@@ -527,12 +528,12 @@ function ZebRaid:PlayerOnDoubleClick()
     end
 end
 
-function ZebRaid:RollCall10_MemberConnected(name)
+function ZebRaid:MemberConnected(name)
     if not StartWasCalled then return; end
 
     if self.UiLockedDown then return; end
 
-    if RollCall:GetLevel(name) ~= 70 then return; end
+    if Guild:GetLevel(name) ~= 70 then return; end
 
     local state = ZebRaidState[ZebRaidState.KarmaDB];
     
@@ -557,7 +558,7 @@ function ZebRaid:RollCall10_MemberConnected(name)
     NeedRecalculateAfterUpdate = true;
 end
 
-function ZebRaid:RollCall10_MemberDisconnected(name)
+function ZebRaid:MemberDisconnected(name)
     if not StartWasCalled then return; end
 
     if self.UiLockedDown then return; end
@@ -575,7 +576,7 @@ function ZebRaid:RollCall10_MemberDisconnected(name)
     NeedRecalculateAfterUpdate = true;
 end
 
-function ZebRaid:RollCall10_MemberAdded(name)
+function ZebRaid:MemberAdded(name)
     if not StartWasCalled then return; end
 
     if self.UiLockedDown then return; end
@@ -585,7 +586,7 @@ function ZebRaid:RollCall10_MemberAdded(name)
     -- him.
 end
 
-function ZebRaid:RollCall10_MemberRemoved(name)
+function ZebRaid:MemberRemoved(name)
     if not StartWasCalled then return; end
 
     if self.UiLockedDown then return; end
@@ -613,7 +614,7 @@ function ZebRaid:RollCall10_MemberRemoved(name)
     end
 end
 
-function ZebRaid:RollCall10_Updated()
+function ZebRaid:GuildStatusUpdated()
     if not StartWasCalled then return; end
 
     if self.UiLockedDown then return; end
@@ -707,7 +708,7 @@ function ZebRaid:InviteConfirmed()
 
         for pos = 1,ZebRaid:Count(list.members) do
             local name = list.members[pos];
-            if  name ~= PlayerName and RollCall:IsMemberOnline(name) then
+            if  name ~= PlayerName and Guild:IsMemberOnline(name) then
                 invitePos = pos;
                 break;
             end
@@ -774,7 +775,7 @@ function ZebRaid:AutoConfirm()
         self:Debug("pos: " .. pos .. "listCount: " .. ZebRaid:Count(listFrom.members));
         local name = listFrom.members[pos];
 
-        if (RollCall:IsMemberOnline(name)) then
+        if (Guild:IsMemberOnline(name)) then
             local listTo = self:FindTargetList(listFrom, name);
 
             if listTo then
@@ -983,8 +984,8 @@ function ZebRaid:InitializeListContents(state)
 
     -- Populate the guild list with online users
     -- They need to be lvl 70, and not signed up yet.
-    for name in RollCall:GetIterator("NAME", false) do
-        if (RollCall:GetLevel(name) == 70 and
+    for name in Guild:GetIterator("NAME", false) do
+        if (Guild:GetLevel(name) == 70 and
             not (state.RegisteredUsers[name] and
                  state.RegisteredUsers[name].list))
         then
@@ -1191,14 +1192,14 @@ end
 -- Find a list position in the list members where a new player should be
 -- inserted according to its class. The list must already be sorted by class.
 function ZebRaid:FindClassInsertPos(list, name)
-    local playerClass = RollCall:GetClass(name);
+    local playerClass = Guild:GetClass(name);
     local foundClassStart = nil;
     local insertPos = nil;
     for pos, val in pairs(list.members) do
-        if RollCall:GetClass(val) == playerClass then
+        if Guild:GetClass(val) == playerClass then
             foundClassStart = true;
         end
-        if foundClassStart and RollCall:GetClass(val) ~= playerClass then
+        if foundClassStart and Guild:GetClass(val) ~= playerClass then
             insertPos = pos;
             break;
         end
@@ -1291,10 +1292,10 @@ function ZebRaid:ShowListMembers()
             buttonNo = buttonNo + 1;
 
             if list.name == "Confirmed" then
-                local engClass = self:GetEnglishClass(RollCall:GetClass(name));
+                local engClass = self:GetEnglishClass(Guild:GetClass(name));
                 confirmedCounts[engClass] = confirmedCounts[engClass] + 1;
             elseif list.name == "Reserved" then
-                local engClass = self:GetEnglishClass(RollCall:GetClass(name));
+                local engClass = self:GetEnglishClass(Guild:GetClass(name));
                 totalCounts[engClass] = totalCounts[engClass] + 1;
             end
         end
@@ -1390,12 +1391,12 @@ function ZebRaid:SetButtonLabel(button, list, name)
     end
 
     buttonLabel:SetText(prefix .. name);
-    buttonLabel:SetTextColor(RollCall:GetClassColor(name));
+    buttonLabel:SetTextColor(Guild:GetClassColor(name));
 end
 
 function ZebRaid:SetButtonColor(button, list, name)
     local buttonColor = getglobal(button:GetName() .. "Color");
-    if RollCall:IsMemberOnline(name) then
+    if Guild:IsMemberOnline(name) then
         if list.name == "Confirmed" and
            Roster:GetUnitIDFromName(name)
         then
@@ -1425,18 +1426,18 @@ function ZebRaid:SetButtonTooltip(button, list, name)
     -- Add the guild info to tooltip
     button.tooltipDblLine = {
         left = name,
-        right = RollCall:GetClass(name)
+        right = Guild:GetClass(name)
     };
 
-    button.tooltipText = "Rank: " .. RollCall:GetRank(name) .. "\n";
-    if RollCall:GetNote(name) then
+    button.tooltipText = "Rank: " .. Guild:GetRank(name) .. "\n";
+    if Guild:GetNote(name) then
         button.tooltipText = button.tooltipText ..
-                             RollCall:GetNote(name) .. "\n\n";
+                             Guild:GetNote(name) .. "\n\n";
     else
         button.tooltipText = button.tooltipText .. "\n";
     end
 
-    if not RollCall:IsMemberOnline(name) then
+    if not Guild:IsMemberOnline(name) then
         button.tooltipText = button.tooltipText ..
                              "|cffff0000" .. L["PLAYER_OFFLINE"] .. "|r\n\n";
     end
@@ -1536,18 +1537,23 @@ function ZebRaid:UnlockUI()
         ZebRaidDialogCommandsSync:Enable();
 --        UIDropDownMenu_EnableDropDown(ZebRaidDialogRaidSelection);
         ZebRaidDialogCommandsUnlock:Disable();
+    else
+        DEFAULT_CHAT_FRAME:AddMessage("ERROR: raid is closed, or ID is missing")
     end
 end
 
 function ZebRaid:OnUnlock()
+    DEFAULT_CHAT_FRAME:AddMessage("DEBUG: OnUnlock");
     local state = ZebRaidState[ZebRaidState.KarmaDB];
     
     if not state then 
+        DEFAULT_CHAT_FRAME:AddMessage("ERROR: state is nil");
         -- FIXME: Print an error message somewhere
         return;
     end
 
     if ZebRaidHistory[state.RaidID] and ZebRaidHistory[state.RaidID].RaidClosed then
+        DEFAULT_CHAT_FRAME:AddMessage("ERROR: raid is closed");
         -- FIXME: An error message?
         return;
     end
@@ -1558,6 +1564,7 @@ function ZebRaid:OnUnlock()
                             ZebRaidState.KarmaDB, state.RaidID,
                             state.RegisteredUsers, state.RaidHistoryEntry,
                             state.Lists);
+    DEFAULT_CHAT_FRAME:AddMessage("DEBUG: sent comm msg");
     self:UnlockUI();
     ZebRaidDialogReportMaster:SetText(L["REPORT_MASTER_SELF"]);
 end
