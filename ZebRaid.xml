@@ -71,69 +71,6 @@
       </OnLeave>
     </Scripts>
   </Button>
-  <CheckButton name="ZebRaidScrollButtonTemplate" virtual="true" inherits="OptionsBaseCheckButtonTemplate">
-    <Size>
-      <AbsDimension x="95" y="13" />
-    </Size>
-    <Anchors>
-      <Anchor point="TOP" />
-    </Anchors>
-    <Layers>
-      <Layer level="BACKGROUND">
-        <Texture name="$parentColor">
-          <Color r="0.6941177" g="0.6" b="0.4901961" a="0.6941177" />
-        </Texture>
-      </Layer>
-      <Layer>
-        <FontString name="$parentName" inherits="GameFontNormal" font="Fonts\FRIZQT__.TTF" justifyH="LEFT" text="99">
-          <Size>
-            <AbsDimension x="74" y="12" />
-          </Size>
-          <Anchors>
-            <Anchor point="LEFT" />
-          </Anchors>
-          <FontHeight>
-            <AbsValue val="12" />
-          </FontHeight>
-          <Color r="1" g="0.8196079" b="0" />
-        </FontString>
-        <FontString name="$parentRole" inherits="GameFontNormal" justifyH="RIGHT" font="Fonts\FRIZQT__.TTF" text="NAME XY">
-          <Size>
-            <AbsDimension x="30" y="12" />
-          </Size>
-          <Anchors>
-            <Anchor point="RIGHT" />
-          </Anchors>
-          <FontHeight>
-            <AbsValue val="12" />
-          </FontHeight>
-          <Color r="1" g="0.8196079" b="0" />
-        </FontString>
-      </Layer>
-    </Layers>
-    <Scripts>
-      <OnEnter>
-        if (this.tooltipText) then
-          GameTooltip:SetOwner(this, "ANCHOR_RIGHT");
-          if (this.tooltipDblLine) then
-            GameTooltip:AddDoubleLine(this.tooltipDblLine.left,
-                                      this.tooltipDblLine.right,
-                                      NORMAL_FONT_COLOR.r,
-                                      NORMAL_FONT_COLOR.g, 
-                                      NORMAL_FONT_COLOR.b, 
-                                      HIGHLIGHT_FONT_COLOR.r, 
-                                      HIGHLIGHT_FONT_COLOR.g,
-                                      HIGHLIGHT_FONT_COLOR.b);
-          end
-          GameTooltip:AddLine(this.tooltipText, 1, 1, 1, 1);
-          GameTooltip:Show();
-        end
-      </OnEnter>
-      <OnLeave>
-        GameTooltip:Hide();
-      </OnLeave>
-    </Scripts>
-  </CheckButton>
   <Frame name="ZebRaidDialogSlotTemplate" virtual="true">
     <Size>
       <AbsDimension x="100" y="13" />
@@ -217,6 +154,83 @@
         </FontString>
       </Layer>
     </Layers>
+  </Frame>
+  <Frame name="ZebRaidDialogPlayerSmallPoolTemplate" inherits="ZebRaidDialogGroupTemplate" virtual="true">
+    <Size>
+      <AbsDimension x="100" y="194" />
+    </Size>
+    <Frames>
+      <Button name="$parentSlot1" inherits="ZebRaidDialogSlotTemplate">
+        <Anchors>
+          <Anchor point="TOP" relativeTo="$parentLabel" relativePoint="BOTTOM" />
+        </Anchors>
+      </Button>
+      <Button name="$parentSlot2" inherits="ZebRaidDialogSlotTemplate">
+        <Anchors>
+          <Anchor point="TOP" relativeTo="$parentSlot1" relativePoint="BOTTOM" />
+        </Anchors>
+      </Button>
+      <Button name="$parentSlot3" inherits="ZebRaidDialogSlotTemplate">
+        <Anchors>
+          <Anchor point="TOP" relativeTo="$parentSlot2" relativePoint="BOTTOM" />
+        </Anchors>
+      </Button>
+      <Button name="$parentSlot4" inherits="ZebRaidDialogSlotTemplate">
+        <Anchors>
+          <Anchor point="TOP" relativeTo="$parentSlot3" relativePoint="BOTTOM" />
+        </Anchors>
+      </Button>
+      <Button name="$parentSlot5" inherits="ZebRaidDialogSlotTemplate">
+        <Anchors>
+          <Anchor point="TOP" relativeTo="$parentSlot4" relativePoint="BOTTOM" />
+        </Anchors>
+      </Button>
+      <Button name="$parentSlot6" inherits="ZebRaidDialogSlotTemplate">
+        <Anchors>
+          <Anchor point="TOP" relativeTo="$parentSlot5" relativePoint="BOTTOM" />
+        </Anchors>
+      </Button>
+      <Button name="$parentSlot7" inherits="ZebRaidDialogSlotTemplate">
+        <Anchors>
+          <Anchor point="TOP" relativeTo="$parentSlot6" relativePoint="BOTTOM" />
+        </Anchors>
+      </Button>
+      <Button name="$parentSlot8" inherits="ZebRaidDialogSlotTemplate">
+        <Anchors>
+          <Anchor point="TOP" relativeTo="$parentSlot7" relativePoint="BOTTOM" />
+        </Anchors>
+      </Button>
+      <Button name="$parentSlot9" inherits="ZebRaidDialogSlotTemplate">
+        <Anchors>
+          <Anchor point="TOP" relativeTo="$parentSlot8" relativePoint="BOTTOM" />
+        </Anchors>
+      </Button>
+      <Button name="$parentSlot10" inherits="ZebRaidDialogSlotTemplate">
+        <Anchors>
+          <Anchor point="TOP" relativeTo="$parentSlot9" relativePoint="BOTTOM" />
+        </Anchors>
+      </Button>
+      <Button name="$parentSlot11" inherits="ZebRaidDialogSlotTemplate">
+        <Anchors>
+          <Anchor point="TOP" relativeTo="$parentSlot10" relativePoint="BOTTOM" />
+        </Anchors>
+      </Button>
+      <Button name="$parentSlot12" inherits="ZebRaidDialogSlotTemplate">
+        <Anchors>
+          <Anchor point="TOP" relativeTo="$parentSlot11" relativePoint="BOTTOM" />
+        </Anchors>
+      </Button>
+      <Button name="$parentSlot13" inherits="ZebRaidDialogSlotTemplate">
+        <Anchors>
+          <Anchor point="TOP" relativeTo="$parentSlot12" relativePoint="BOTTOM" />
+        </Anchors>
+      </Button>
+      <Button name="$parentSlot14" inherits="ZebRaidDialogSlotTemplate">
+        <Anchors>
+          <Anchor point="TOP" relativeTo="$parentSlot13" relativePoint="BOTTOM" />
+        </Anchors>
+      </Button>
+    </Frames>
   </Frame>
   <Frame name="ZebRaidDialogPlayerPoolTemplate" inherits="ZebRaidDialogGroupTemplate" virtual="true">
     <Size>
@@ -505,48 +519,6 @@
       </Layer>
     </Layers>
   </Frame>
-  <ScrollFrame name="ZebRaidScrollFrameTemplate" inherits="FauxScrollFrameTemplate" virtual="true">
-    <Layers>
-      <Layer level="ARTWORK">
-        <Texture name="$parentTop" file="Interface\PaperDollInfoFrame\UI-Character-ScrollBar">
-          <Size>
-            <AbsDimension x="31" y="192"/>
-          </Size>
-          <Anchors>
-            <Anchor point="TOPLEFT" relativePoint="TOPRIGHT">
-              <Offset>
-                <AbsDimension x="-2" y="5"/>
-              </Offset>
-            </Anchor>
-          </Anchors>
-          <TexCoords left="0" right="0.484375" top="0" bottom="0.75"/>
-        </Texture>
-        <Texture name="$parentBottom" file="Interface\PaperDollInfoFrame\UI-Character-ScrollBar">
-          <Size>
-            <AbsDimension x="31" y="106"/>
-          </Size>
-          <Anchors>
-            <Anchor point="BOTTOMLEFT" relativePoint="BOTTOMRIGHT">
-              <Offset>
-                <AbsDimension x="-2" y="-2"/>
-              </Offset>
-            </Anchor>
-          </Anchors>
-          <TexCoords left="0.515625" right="1.0" top="0" bottom="0.4140625"/>
-        </Texture>
-        <Texture name="$parentMiddle" file="Interface\PaperDollInfoFrame\UI-Character-ScrollBar">
-          <Size>
-            <AbsDimension x="31" y="60"/>
-          </Size>
-          <Anchors>
-            <Anchor point="TOP" relativeTo="$parentTop" relativePoint="BOTTOM"/>
-            <Anchor point="BOTTOM" relativeTo="$parentBottom" relativePoint="TOP"/>
-          </Anchors>
-          <TexCoords left="0" right="0.484375" top=".75" bottom="1.0"/>
-        </Texture>
-      </Layer>
-    </Layers>
-  </ScrollFrame>
   <Frame name="ZebRaidDialog" hidden="true" parent="UIParent" movable="true" frameStrata="DIALOG" enableMouse="true" clampedToScreen="true">
     <Size>
       <AbsDimension x="760" y="680" />
@@ -722,6 +694,24 @@
               </Anchor>
             </Anchors>
           </Frame>
+          <Frame name="$parentPenalty" inherits="ZebRaidDialogPlayerSmallPoolTemplate">
+            <Anchors>
+              <Anchor point="TOPLEFT" relativeTo="$parentReserved" relativePoint="TOPRIGHT">
+                <Offset>
+                  <AbsDimension x="25" y="0" />
+                </Offset>
+              </Anchor>
+            </Anchors>
+          </Frame>
+          <Frame name="$parentSitout" inherits="ZebRaidDialogPlayerSmallPoolTemplate">
+            <Anchors>
+              <Anchor point="TOPLEFT" relativeTo="$parentPenalty" relativePoint="BOTTOMLEFT">
+                <Offset>
+                  <AbsDimension x="0" y="-14" />
+                </Offset>
+              </Anchor>
+            </Anchors>
+          </Frame>
           <Button name="ZebRaidDialogButton1" inherits="ZebRaidDialogButtonTemplate" />
           <Button name="ZebRaidDialogButton2" inherits="ZebRaidDialogButtonTemplate" />
           <Button name="ZebRaidDialogButton3" inherits="ZebRaidDialogButtonTemplate" />
@@ -890,7 +880,7 @@
             </Anchors>
             <Scripts>
                 <OnClick>
-					ZebRaid:StartInvite()
+                    ZebRaid:StartInvite()
                 </OnClick>
             </Scripts>
           </Button>
@@ -979,30 +969,25 @@
                 </OnClick>
             </Scripts>
           </Button>
+          <Button name="$parentCloseRaid" inherits="UIPanelButtonTemplate" text="CLOSERAID_LOCALE">
+            <Size>
+              <AbsDimension x="100" y="24"/>
+            </Size>
+            <Anchors>
+              <Anchor point="TOP" relativeTo="$parentUnlock" relativePoint="BOTTOM">
+                <Offset>
+                    <AbsDimension x="0" y="-3" />
+                </Offset>
+              </Anchor>
+            </Anchors>
+            <Scripts>
+                <OnClick>
+                    ZebRaid:CloseRaid();
+                </OnClick>
+            </Scripts>
+          </Button>          
         </Frames>
       </Frame>
-
-      <ScrollFrame name="$parentSitoutScrollFrame" inherits="ZebRaidScrollFrameTemplate">
-        <Anchors>
-          <Anchor point="TOPLEFT" relativeTo="$parentPanel" relativePoint="TOPRIGHT">
-            <Offset>
-              <AbsDimension x="0" y="30"/>
-            </Offset>
-          </Anchor>
-          <Anchor point="BOTTOMRIGHT" relativeTo="$parentPanel" relativePoint="BOTTOMRIGHT">
-            <Offset>
-              <AbsDimension x="0" y="-30"/>
-            </Offset>
-          </Anchor>
-        </Anchors>
-        <Scripts>
-          <OnVerticalScroll>
-            FauxScrollFrame_OnVerticalScroll(self,
-                                             offset, 16,
-                                             ZebRaid.SitoutOnVerticalScroll)
-          </OnVerticalScroll>
-        </Scripts>	  
-	  </ScrollFrame>
     </Frames>
     <Scripts>
       <OnLoad>

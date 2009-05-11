@@ -1,6 +1,6 @@
 --[[
 Name: AceComm-2.0
-Revision: $Rev: 78794 $
+Revision: $Rev: 1091 $
 Developed by: The Ace Development Team (http://www.wowace.com/index.php/The_Ace_Development_Team)
 Inspired By: Ace 1.x by Turan (turan@gryphon.com)
 Website: http://www.wowace.com/
@@ -13,14 +13,14 @@ License: LGPL v2.1
 ]]
 
 local MAJOR_VERSION = "AceComm-2.0"
-local MINOR_VERSION = "$Revision: 78794 $"
+local MINOR_VERSION = 90000 + tonumber(("$Revision: 1091 $"):match("(%d+)"))
 
 if not AceLibrary then error(MAJOR_VERSION .. " requires AceLibrary") end
 if not AceLibrary:IsNewVersion(MAJOR_VERSION, MINOR_VERSION) then return end
 
 if not AceLibrary:HasInstance("AceOO-2.0") then error(MAJOR_VERSION .. " requires AceOO-2.0") end
 
-local WotLK = not not ToggleAchievementFrame
+local WotLK = select(4,GetBuildInfo()) >= 30000
 
 local AceOO = AceLibrary("AceOO-2.0")
 local AceComm = AceOO.Mixin {
@@ -1086,7 +1086,7 @@ do
 end
 
 local function GetCurrentGroupDistribution()
-	if select(2, IsInInstance()) == "pvp" then
+	if select(2, IsInInstance()) == "pvp" or select(2, IsInInstance()) == "arena" then
 		return "BATTLEGROUND"
 	elseif UnitInRaid("player") then
 		return "RAID"
@@ -1099,7 +1099,7 @@ local function IsInDistribution(dist, customChannel)
 	if dist == "GROUP" then
 		return not not GetCurrentGroupDistribution()
 	elseif dist == "BATTLEGROUND" then
-		return select(2, IsInInstance()) == "pvp"
+		return select(2, IsInInstance()) == "pvp" or select(2, IsInInstance()) == "arena"
 	elseif dist == "RAID" then
 		return GetNumRaidMembers() > 0
 	elseif dist == "PARTY" then
@@ -1949,10 +1949,10 @@ local ambiguousString = '^' .. _G.ERR_CHAT_PLAYER_AMBIGUOUS_S:gsub("%%s", "(.-)"
 local ERR_GUILD_PERMISSIONS = _G.ERR_GUILD_PERMISSIONS
 if WotLK then
 	function AceComm.hooks:ChatFrame_MessageEventHandler(orig, hookSelf, event, ...)
-		if (event == "CHAT_MSG_CHANNEL" or event == "CHAT_MSG_CHANNEL_LIST") and _G.arg9:find("^AceComm") then
+		if (event == "CHAT_MSG_CHANNEL" or event == "CHAT_MSG_CHANNEL_LIST") and select(9, ...):find("^AceComm") then
 			return
 		elseif event == "CHAT_MSG_SYSTEM" then
-			local arg1 = _G.arg1
+			local arg1 = ...
 			if arg1 == ERR_GUILD_PERMISSIONS then
 				if recentGuildMessage > GetTime() then
 					stopGuildMessages = true

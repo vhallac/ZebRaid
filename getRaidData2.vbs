@@ -74,6 +74,8 @@ Function ScrapeSection(table, message)
                     e = InStr(s, tooltipNote,",this")
                     attendNote = Mid(tooltipNote, s, e-s-1)
                     attendNote = Replace(attendNote, "<br>", "")
+                    attendNote = Replace(attendNote, vbCRLF, "\n")
+                    attendNote = Replace(attendNote, chr(34), "\" & """")
                 End If
             Else
                 attendNote = ""
@@ -201,7 +203,7 @@ Function GetSessionId(url)
 End Function
 
 Function GetRaidId(url)
-    s = InStr(url, "raid_id=") + 2
+    s = InStr(url, "raid_id=") + 8
     e = InStr(s, url, "&")
     if e <> 0 Then
         GetRaidId = Mid(url, s, e - s)

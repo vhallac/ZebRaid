@@ -4,9 +4,8 @@
 -- and learning the other instances of the addon.
 function ZebRaid.OnCommReceive.BROADCAST(self, prefix, sender, distibution)
     self:Debug("Received BROADCAST from " .. sender);
+
 	-- TODO: Sync the known player roles
-	--[[
-	
     if not ZebRaid.UiLockedDown then
         local state = ZebRaidState[ZebRaidState.KarmaDB];
 
@@ -15,8 +14,8 @@ function ZebRaid.OnCommReceive.BROADCAST(self, prefix, sender, distibution)
                                 state.RegisteredUsers,
                                 state.Lists);
     end
+
     -- If the broadcasting person is a UI Master, assume he reloaded, and release
-    -- FIXME: Can I remove and iterate in the same loop? Would clarify code.
     local removeDBs = {};
     for db, val in pairs(ZebRaid.UIMasters) do
         if val == sender then
@@ -31,14 +30,33 @@ function ZebRaid.OnCommReceive.BROADCAST(self, prefix, sender, distibution)
         end
     end
     
-    self:SendCommMessage("WHISPER", sender, "ACKNOWLEDGE");
-	]]--
+	--self:SendCommMessage("WHISPER", sender, "REQUESTDATA");
+    --self:SendCommMessage("WHISPER", sender, "ACKNOWLEDGE");
 end
 
 -- Sent from the addons receiving a BROADCAST to the sender of the BROADCAST.
 -- We use it to learn their history.
 function ZebRaid.OnCommReceive.ACKNOWLEDGE(self, prefix, sender, distribution)
+	--self:SendCommMessage("WHISPER", sender, "REQUESTDATA");
     self:Debug("Received ACKNOWLEDGE from " .. sender);
+end
+
+-- Sent by an instance to request the player data
+function ZebRaid.OnCommReceive.REQUESTDATA(self, prefix, sender, distribution)
+	local playerData = {}
+	-- Filter the ZebRaidPlayerData, and send it
+	-- We will avoid non-integer indexes to reduce data size
+	-- Format: {name1, sitoutPos1, signedCount1, sitoutCount1, penaltyCount1,...}
+	for dbName, dbData in pairs(ZebRaidPlayerData) do
+		-- First entry is the KarmaDB name
+		table.insert(playerData, dbName)
+		local stats = {}
+		for player, playerStats in pairs(dbData) do
+			table.insert(stats, player)
+			table.insert(stats, playerStats.sitoutPos)
+		end
+		table.insert(playerData, stats)
+	end
 end
 
 -- Sent by an instance to tell others that it is becoming the master now.

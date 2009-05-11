@@ -1,6 +1,6 @@
 ﻿--[[
 Name: AceAddon-2.0
-Revision: $Rev: 79524 $
+Revision: $Rev: 1091 $
 Developed by: The Ace Development Team (http://www.wowace.com/index.php/The_Ace_Development_Team)
 Inspired By: Ace 1.x by Turan (turan@gryphon.com)
 Website: http://www.wowace.com/
@@ -11,10 +11,8 @@ Dependencies: AceLibrary, AceOO-2.0, AceEvent-2.0, (optional) AceConsole-2.0
 License: LGPL v2.1
 ]]
 
-local WotLK = select(4,GetBuildInfo()) >= 30000
-
 local MAJOR_VERSION = "AceAddon-2.0"
-local MINOR_VERSION = "$Revision: 79524 $"
+local MINOR_VERSION = 90000 + tonumber(("$Revision: 1091 $"):match("(%d+)"))
 
 -- This ensures the code is only executed if the libary doesn't already exist, or is a newer version
 if not AceLibrary then error(MAJOR_VERSION .. " requires AceLibrary.") end
@@ -369,6 +367,63 @@ elseif GetLocale() == "esES" then
 		["Raid"] = "Banda",
 		["Tradeskill"] = "Habilidad de Comercio",
 		["UnitFrame"] = "Marco de Unidades",
+	}
+elseif GetLocale() == "ruRU" then
+	STANDBY = "|cffff5050(в режиме ожидания)|r"
+
+	TITLE = "Заглавие"
+	NOTES = "Заметки"
+	VERSION = "Версия"
+	AUTHOR = "Автор"
+	DATE = "Дата"
+	CATEGORY = "Категория"
+	EMAIL = "E-mail"
+	WEBSITE = "Сайт"
+	CREDITS = "Титры"
+	LICENSE = "Лицензия"
+
+	ABOUT = "О аддоне"
+	PRINT_ADDON_INFO = "Показать информацию о аддоне."
+	DONATE = "Пожертвовать"
+	DONATE_DESC = "Отблагодарить Автора за разработку аддона."
+	HOWTO_DONATE_WINDOWS = "Для выбора всей ссылки нажмите Ctrl-A, потом для её копирования Ctrl-C, чтобы свернуть игру Alt-Tab, откройте ваш браузер, и вставьте ссылку в строку адреса Ctrl-V"
+	HOWTO_DONATE_MAC = "Для выбора всей ссылки нажмите Cmd-A, потом для её копирования Ctrl-C, чтобы свернуть игру Cmd-Tab, откройте ваш браузер, и вставьте ссылку в строку адреса Cmd-V"
+
+	CATEGORIES = {
+		["Action Bars"] = "Панели команд",
+		["Auction"] = "Аукцион",
+		["Audio"] = "Аудио",
+		["Battlegrounds/PvP"] = "Поля сражений/PvP",
+		["Buffs"] = "Баффы",
+		["Chat/Communication"] = "Чат/Коммуникация",
+		["Druid"] = "Друид",
+		["Hunter"] = "Охотник",
+		["Mage"] = "Маг",
+		["Paladin"] = "Паладин",
+		["Priest"] = "Жрец",
+		["Rogue"] = "Разбойник",
+		["Shaman"] = "Шаман",
+		["Warlock"] = "Чернокнижник",
+		["Warrior"] = "Воин",
+		["Healer"] = "Лекарь",
+		["Tank"] = "Танк",
+		["Caster"] = "Кастер",
+		["Combat"] = "Сражения",
+		["Compilations"] = "Компиляция",
+		["Data Export"] = "Экспорт данных",
+		["Development Tools"] = "Инструменты разработчика",
+		["Guild"] = "Гильдия",
+		["Frame Modification"] = "Модификация фреймов",
+		["Interface Enhancements"] = "Улучшение интерфейса",
+		["Inventory"] = "Инвентарь",
+		["Library"] = "Библиотеки",
+		["Map"] = "Карта",
+		["Mail"] = "Почта",
+		["Miscellaneous"] = "Разное",
+		["Quest"] = "Задания",
+		["Raid"] = "Рейд",
+		["Tradeskill"] = "Умения",
+		["UnitFrame"] = "Фрейми персонажа",
 	}
 else -- enUS
 	STANDBY = "|cffff5050(standby)|r"
@@ -950,14 +1005,7 @@ function AceAddon.prototype:init()
 	AceAddon:RegisterEvent("ADDON_LOADED", "ADDON_LOADED")
 	local names = {}
 	for i = 1, GetNumAddOns() do
-		if WotLK then
-			if not IsAddOnLoaded(i) then
-				local name, _,_, enabled, loadable = GetAddOnInfo(i)
-				if enabled and loadable then names[name] = true end
-			end
-		else
-			if IsAddOnLoaded(i) then names[GetAddOnInfo(i)] = true end
-		end
+		if IsAddOnLoaded(i) then names[GetAddOnInfo(i)] = true end
 	end
 	self.possibleNames = names
 	table.insert(AceAddon.nextAddon, self)

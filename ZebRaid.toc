@@ -5,7 +5,7 @@
 ## SavedVariables: ZebRaidState, ZebRaidPlayerData
 ## LoadOnDemand: 0
 
-## OptionalDeps: Ace2, RollCall-1.0, LibBabble-Class-3.0, RosterLib, Ni_Karma
+## OptionalDeps: Ace2, RollCall-1.0, LibBabble-Class-3.0, Ni_Karma
 ## X-Embeds: Ace2
 
 embeds.xml
