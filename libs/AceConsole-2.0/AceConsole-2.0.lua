@@ -1,6 +1,6 @@
 ﻿--[[
 Name: AceConsole-2.0
-Revision: $Rev: 67789 $
+Revision: $Rev: 78792 $
 Developed by: The Ace Development Team (http://www.wowace.com/index.php/The_Ace_Development_Team)
 Inspired By: Ace 1.x by Turan (turan@gryphon.com)
 Website: http://www.wowace.com/
@@ -14,12 +14,14 @@ License: LGPL v2.1
 ]]
 
 local MAJOR_VERSION = "AceConsole-2.0"
-local MINOR_VERSION = "$Revision: 67789 $"
+local MINOR_VERSION = "$Revision: 78792 $"
 
 if not AceLibrary then error(MAJOR_VERSION .. " requires AceLibrary.") end
 if not AceLibrary:IsNewVersion(MAJOR_VERSION, MINOR_VERSION) then return end
 
 if not AceLibrary:HasInstance("AceOO-2.0") then error(MAJOR_VERSION .. " requires AceOO-2.0.") end
+
+local WotLK = not not ToggleAchievementFrame
 
 -- #AUTODOC_NAMESPACE AceConsole
 
@@ -2376,17 +2378,38 @@ function AceConsole:RegisterChatCommand(...) -- slashCommands, options, name
 	local handler
 	if type(options) == "function" then
 		handler = options
+		local found = false
 		for k,v in pairs(_G) do
 			if handler == v then
 				local k = k
-				handler = function(msg)
-					return _G[k](msg)
+				if WotLK then
+					handler = function(chatFrame, msg)
+						return _G[k](msg)
+					end
+				else
+					handler = function(msg)
+						return _G[k](msg)
+					end
 				end
+				found = true
+				break
+			end
+		end
+		if WotLK and not found then
+			local oldHandler = handler
+			handler = function(chatFrame, msg)
+				oldHandler(msg)
 			end
 		end
 	else
-		function handler(msg)
-			handlerFunc(self, chat, msg, options)
+		if WotLK then
+			function handler(chatFrame, msg)
+				handlerFunc(self, chat, msg, options)
+			end
+		else
+			function handler(msg)
+				handlerFunc(self, chat, msg, options)
+			end
 		end
 	end
 

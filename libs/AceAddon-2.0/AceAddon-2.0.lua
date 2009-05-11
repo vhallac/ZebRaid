@@ -1,6 +1,6 @@
 ﻿--[[
 Name: AceAddon-2.0
-Revision: $Rev: 57245 $
+Revision: $Rev: 79524 $
 Developed by: The Ace Development Team (http://www.wowace.com/index.php/The_Ace_Development_Team)
 Inspired By: Ace 1.x by Turan (turan@gryphon.com)
 Website: http://www.wowace.com/
@@ -11,8 +11,10 @@ Dependencies: AceLibrary, AceOO-2.0, AceEvent-2.0, (optional) AceConsole-2.0
 License: LGPL v2.1
 ]]
 
+local WotLK = select(4,GetBuildInfo()) >= 30000
+
 local MAJOR_VERSION = "AceAddon-2.0"
-local MINOR_VERSION = "$Revision: 57245 $"
+local MINOR_VERSION = "$Revision: 79524 $"
 
 -- This ensures the code is only executed if the libary doesn't already exist, or is a newer version
 if not AceLibrary then error(MAJOR_VERSION .. " requires AceLibrary.") end
@@ -948,7 +950,14 @@ function AceAddon.prototype:init()
 	AceAddon:RegisterEvent("ADDON_LOADED", "ADDON_LOADED")
 	local names = {}
 	for i = 1, GetNumAddOns() do
-		if IsAddOnLoaded(i) then names[GetAddOnInfo(i)] = true end
+		if WotLK then
+			if not IsAddOnLoaded(i) then
+				local name, _,_, enabled, loadable = GetAddOnInfo(i)
+				if enabled and loadable then names[name] = true end
+			end
+		else
+			if IsAddOnLoaded(i) then names[GetAddOnInfo(i)] = true end
+		end
 	end
 	self.possibleNames = names
 	table.insert(AceAddon.nextAddon, self)
