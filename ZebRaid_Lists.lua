@@ -1,5 +1,5 @@
 -- Libraries we want to use in this file
-local RollCall = AceLibrary("RollCall-1.0");
+local RollCall = Rock("LibRollCall-2.0")
 
 -- Find the position of a value in a table.
 function ZebRaid:FindInTable(tbl, name)

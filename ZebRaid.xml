@@ -389,7 +389,7 @@
       </Button>
     </Frames>
   </Frame>
-  <Frame name="ZebRaidDialogStatsTemplate" virtual="true" inherits="OptionFrameBoxTemplate">
+  <Frame name="ZebRaidDialogStatsTemplate" virtual="true" inherits="OptionsBoxTemplate">
     <Size>
       <AbsDimension x="190" y="130" />
     </Size>
@@ -712,7 +712,7 @@
           </OnShow>
         </Scripts>
       </Button>
-      <Frame name="$parentPanel" inherits="OptionFrameBoxTemplate">
+      <Frame name="$parentPanel" inherits="OptionsBoxTemplate">
         <!-- {{{ -->
         <Size>
           <AbsDimension x="700" y="425" />
@@ -914,7 +914,7 @@
           </Anchor>
         </Anchors>
       </Frame>
-      <Frame name="$parentCommands" inherits="OptionFrameBoxTemplate">
+      <Frame name="$parentCommands" inherits="OptionsBoxTemplate">
         <Size>
           <AbsDimension x="214" y="130" />
         </Size>

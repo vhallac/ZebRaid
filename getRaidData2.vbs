@@ -5,12 +5,12 @@ Function Login(URL)
 	Const WinHttpRequestOption_EnableRedirects= 6
 	WinHttpReq.Option(WinHttpRequestOption_EnableRedirects) = "True"
 	WinHttpReq.Send
-    
+
 	str = WinHttpReq.GetAllResponseHeaders
 	arrHeader = split(WinHttpReq.GetAllResponseHeaders,vbcrlf)
 	dim strCookies
 	dim intCookies
-	
+
 	for i = 0 to UBound(arrHeader)
 	    if Left(arrHeader(i),10)  = "Set-Cookie" then
 		    strCookies = strCookies & Mid(arrHeader(i),12) & "; "
@@ -26,10 +26,12 @@ Function ReadPage(URL, cookies)
 
     Set WinHttpReq = CreateObject("WinHttp.WinHttpRequest.5.1")
     WinHttpReq.Open "GET", URL, False
+    If cookies <> null Then
 '	WinHttpReq.SetRequestHeader "Depth", "0"
 '	WinHttpReq.SetRequestHeader "Content-Type","text/xml"
-	WinHttpReq.SetRequestHeader "Cookie", "Necessary according to Q234486"
-	WinHttpReq.SetRequestHeader "Cookie",cookies
+    	WinHttpReq.SetRequestHeader "Cookie", "Necessary according to Q234486"
+	    WinHttpReq.SetRequestHeader "Cookie",cookies
+    End If
     WinHttpReq.Send
 
     If (WinHttpReq.Status = 200) Then
@@ -40,9 +42,9 @@ Function ReadPage(URL, cookies)
 End Function
 
 Function ScrapeTable(Cells, message)
-    
+
     scraped = ""
-  
+
     For classrow = 0 To Cells.Length - 1
         attendName = ""
         attendNote = ""
@@ -50,14 +52,14 @@ Function ScrapeTable(Cells, message)
         Set Members = Cells(classrow).Children
         Set member = Members(0).Rows(1).Cells(0)
         For i = 0 To member.Children.Length - 1
-        
+
             Set cmember = member.Children(i)
 
         	cell0 = Trim(cmember.Rows(1).Cells(0).innerHTML)
         	bul = InStr(cell0, "up.png") ' Check if we have a class leader here
         	shiftIdx = 0
         	if bul <> 0 Then shiftIdx = 1
-        
+
             attendName = Trim(cmember.Rows(1).Cells(shiftIdx + 1).innertext)
             attendNote = Trim(cmember.Rows(1).Cells(shiftIdx + 0).innerHTML)
             attendRoll = Trim(cmember.Rows(1).Cells(shiftIdx + 2).innerHTML)
@@ -78,7 +80,7 @@ Function ScrapeTable(Cells, message)
 	            	attendNote = ""
                 End If
 	        End If
-                
+
             If attendRoll <> "" Then
                 bul = InStr(attendRoll, "roll.png")
                 attendRoll = Mid(attendRoll, bul + 21)
@@ -111,20 +113,77 @@ Function ScrapeTable(Cells, message)
     ScrapeTable = scraped
 End Function
 
-Function ScrapeData(PageText)
-    locConfirTbl = -1
-    locSignedTbl = -1
-    locNotsurTbl = -1
-    locUnsignTbl = -1
+Function InnermostChild(node)
+    While not (node.firstChild is nothing or isNull(node.firstChild))
+        Set node = node.firstChild
+    Wend
+    Set InnermostChild = node
+End Function
+
+Function ScrapeRaidList(PageText)
+    locList = -1
+    locDate = -1
+    locUrl = -1
     tblTitle = ""
-    
+
     Set oDoc = CreateObject("HtmlFile")
     oDoc.Open
     oDoc.write PageText
     oDoc.Close
 
     scraped = ""
-    
+
+    Set Tables = oDoc.getElementsByTagName("table")
+
+    For iTbl = 0 to Tables.Length - 1
+        tblTitle = trim(Tables(iTbl).Rows(0).innerText)
+        If Left(tblTitle, 13) = "Current Raids" Then
+            locList = iTbl
+            Exit For
+        End If
+    Next
+
+    If locList <> -1 then
+        Set cells = Tables(locList).Rows(1).Cells
+        For iCol = 0 to cells.Length - 1
+            Set cell = InnermostChild(cells(iCol))
+            If not (cell is nothing or isNull(cell)) Then
+                cellTitle = trim(cell.nodeValue)
+                If left(cellTitle,4) = "Date" Then locDate = iCol
+                If left(cellTitle,4) = "Name" Then locUrl = iCol
+                If locDate <> -1 And locUrl <> -1 Then Exit For
+            End If
+        Next
+    End If
+
+    If locList<> -1 And locDate <> -1 And locUrl <> -1 Then
+        For iRow = 2 to Tables(locList).Rows.Length - 3
+            Set cell = InnermostChild(Tables(locList).Rows(iRow).Cells(locUrl))
+            scraped = scraped & _
+                "<option value=""" & _
+                    Replace(cell.parentNode.getAttribute("href"), "about:", "") & """>"
+            Set cell = InnermostChild(Tables(locList).Rows(iRow).Cells(locDate))
+            scraped = scraped & cell.nodeValue & "</option>"
+        Next
+    End If
+
+    ScrapeRaidList = scraped
+End Function
+
+Function ScrapeData(PageText)
+    locConfirTbl = -1
+    locSignedTbl = -1
+    locNotsurTbl = -1
+    locUnsignTbl = -1
+    tblTitle = ""
+
+    Set oDoc = CreateObject("HtmlFile")
+    oDoc.Open
+    oDoc.write PageText
+    oDoc.Close
+
+    scraped = ""
+
     For mx = 0 To oDoc.getElementsByTagName("table").Length - 1
         tblTitle = Trim(oDoc.getElementsByTagName("table")(mx).Rows(0).innertext)
 
@@ -153,10 +212,30 @@ Function ScrapeData(PageText)
     ScrapeData = scraped
 End Function
 
+Function GetSessionId(url)
+    s = InStr(url, "s=") + 2
+    e = InStr(s, url, "&")
+    if e <> 0 Then
+        GetSessionId = Mid(url, s, e - s)
+    Else
+        GetSessionId = Mid(url, s)
+    End if
+End Function
+
+Function GetRaidId(url)
+    s = InStr(url, "r=") + 2
+    e = InStr(s, url, "&")
+    if e <> 0 Then
+        GetRaidId = Mid(url, s, e - s)
+    Else
+        GetRaidId = Mid(url, s)
+    End if
+End Function
+
 FormDone = 0
 Sub OkClicked
 	FormDone = 1
-end sub
+End Sub
 
 Set fso = CreateObject("Scripting.FileSystemObject")
 With fso
@@ -165,6 +244,9 @@ With fso
     End If
 End With
 
+raidListPage = ReadPage("http://www.zebraguild.com/dkp40/plugins/raidplan/listraids.php?s=", null)
+choices = ScrapeRaidList(raidListPage)
+
 Set ie = WScript.CreateObject("InternetExplorer.Application", "IE_")
 
 'path = WScript.ScriptFullName
@@ -172,7 +254,7 @@ Set ie = WScript.CreateObject("InternetExplorer.Application", "IE_")
 'ie.navigate path & "form.html"
 ie.navigate "about:blank"
 Do While (ie.Busy) ' Important: wait till MSIE is ready
- WScript.Sleep 200  ' suspend 200 ms to lower CPU load
+    WScript.Sleep 200  ' suspend 200 ms to lower CPU load
 Loop
 ie.Document.open
 ie.Document.write "<html>"
@@ -181,8 +263,9 @@ ie.Document.write "<BODY style=""background:#c0c0c0;"" scroll=""no""><table><tr>
 "<font face=""Arial""><input type=""text"" name=""UserName"" size=""40"">" &_
 "</font></td></tr><tr><td><font size=""2"" face=""Arial"">Password:</font></td>" &_
 "<td><font face=""Arial""><input type=""password"" name=""UserPassword"" size=""40""></font></td>" &_
-"</tr><tr><td><font size=""2"" face=""Arial"">Raid ID:</font></td><td><font face=""Arial"">" &_
-"<input type=""text"" name=""RaidID"" size=""40""></font></td></tr></table>" &_
+"</tr><tr><td><font size=""2"" face=""Arial"">Raid Date:</font></td><td><font face=""Arial"">" &_
+"<select name=""RaidUrl"">" & choices & "</select>" &_
+"</font></td></tr></table>" &_
 "<input id=runbutton class=""button"" type=""button"" value="" OK "" name=""ok_button""></BODY>"
 ie.Document.close
 
@@ -195,12 +278,12 @@ ie.Top = 200
 ie.Visible = 1
 ie.Document.Body.All.ok_button.onclick = GetRef("OkClicked")
 Do While (FormDone <> 1)
-    Wscript.Sleep 250                 
-Loop 
+    Wscript.Sleep 250
+Loop
 
 userName = ie.Document.Body.All.UserName.Value
 password = ie.Document.Body.All.UserPassword.Value
-raidId = ie.Document.Body.All.RaidId.Value
+raidUrl = ie.Document.Body.All.RaidUrl.Value
 ie.Quit
 Wscript.Sleep 250
 
@@ -209,9 +292,11 @@ If strButton = "Cancelled" Then
     Wscript.Quit
 End If
 
-cookies = Login("http://www.zebraguild.com/dkp40/login.php?s=&username=" & userName & "&password=" & password & "&login=Login")
+sessionId = GetSessionId(raidUrl)
+raidId = GetRaidId(raidUrl)
+cookies = Login("http://www.zebraguild.com/dkp40/login.php?s=" & sessionId & "&username=" & userName & "&password=" & password & "&login=Login")
 
-raidPage = ReadPage("http://www.zebraguild.com/dkp40/plugins/raidplan/viewraid.php?s=&r=" & raidId, cookies)
+raidPage = ReadPage("http://www.zebraguild.com/dkp40/plugins/raidplan/" & raidUrl, cookies)
 ' Parse the planned tables, and prepare output (raidData variable holds it)
 raidId = raidId & "_" & FormatDateTime(Now(), vbShortDate)
 raidData = "ZebRaid.RaidID = """ & raidId & """" & vbCrLf
@@ -238,7 +323,4 @@ With CreateObject("adodb.stream")
 End With
 
 MsgBox ("Raid data written to " & outFileName & " successfully")
-
-
-
 

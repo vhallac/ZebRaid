@@ -1,8 +1,7 @@
 ﻿ZebRaid = AceLibrary("AceAddon-2.0"):new("AceConsole-2.0", "AceDebug-2.0",
 "AceDB-2.0", "AceEvent-2.0", "AceComm-2.0");
 local L = AceLibrary("AceLocale-2.2"):new("ZebRaid");
-local BC = AceLibrary("Babble-Class-2.2");
-local RollCall = AceLibrary("RollCall-1.0");
+local RollCall = Rock("LibRollCall-2.0")
 local Roster = AceLibrary("Roster-2.1");
 
 local options = {
@@ -138,27 +137,27 @@ function ZebRaid:OnInitialize()
     ZebRaidDialogCommandsUnlock:SetText(L["UNLOCK"]);
 
     ZebRaidDialogConfirmedStatsTitle:SetText(L["CONFIRMED_STATS"]);
-    ZebRaidDialogConfirmedStatsWarriors:SetTextColor(BC:GetColor("WARRIOR"));
-    ZebRaidDialogConfirmedStatsDruids:SetTextColor(BC:GetColor("DRUID"));
-    ZebRaidDialogConfirmedStatsPaladins:SetTextColor(BC:GetColor("PALADIN"));
-    ZebRaidDialogConfirmedStatsRogues:SetTextColor(BC:GetColor("ROGUE"));
-    ZebRaidDialogConfirmedStatsPriests:SetTextColor(BC:GetColor("PRIEST"));
-    ZebRaidDialogConfirmedStatsMages:SetTextColor(BC:GetColor("MAGE"));
-    ZebRaidDialogConfirmedStatsShamans:SetTextColor(BC:GetColor("SHAMAN"));
-    ZebRaidDialogConfirmedStatsWarlocks:SetTextColor(BC:GetColor("WARLOCK"));
-    ZebRaidDialogConfirmedStatsHunters:SetTextColor(BC:GetColor("HUNTER"));
+    ZebRaidDialogConfirmedStatsWarriors:SetTextColor(self:GetClassColor("WARRIOR"));
+    ZebRaidDialogConfirmedStatsDruids:SetTextColor(self:GetClassColor("DRUID"));
+    ZebRaidDialogConfirmedStatsPaladins:SetTextColor(self:GetClassColor("PALADIN"));
+    ZebRaidDialogConfirmedStatsRogues:SetTextColor(self:GetClassColor("ROGUE"));
+    ZebRaidDialogConfirmedStatsPriests:SetTextColor(self:GetClassColor("PRIEST"));
+    ZebRaidDialogConfirmedStatsMages:SetTextColor(self:GetClassColor("MAGE"));
+    ZebRaidDialogConfirmedStatsShamans:SetTextColor(self:GetClassColor("SHAMAN"));
+    ZebRaidDialogConfirmedStatsWarlocks:SetTextColor(self:GetClassColor("WARLOCK"));
+    ZebRaidDialogConfirmedStatsHunters:SetTextColor(self:GetClassColor("HUNTER"));
     ZebRaidDialogConfirmedStatsTotal:SetTextColor(1, .6, 0);
 
     ZebRaidDialogTotalStatsTitle:SetText(L["TOTAL_STATS"]);
-    ZebRaidDialogTotalStatsWarriors:SetTextColor(BC:GetColor("WARRIOR"));
-    ZebRaidDialogTotalStatsDruids:SetTextColor(BC:GetColor("DRUID"));
-    ZebRaidDialogTotalStatsPaladins:SetTextColor(BC:GetColor("PALADIN"));
-    ZebRaidDialogTotalStatsRogues:SetTextColor(BC:GetColor("ROGUE"));
-    ZebRaidDialogTotalStatsPriests:SetTextColor(BC:GetColor("PRIEST"));
-    ZebRaidDialogTotalStatsMages:SetTextColor(BC:GetColor("MAGE"));
-    ZebRaidDialogTotalStatsShamans:SetTextColor(BC:GetColor("SHAMAN"));
-    ZebRaidDialogTotalStatsWarlocks:SetTextColor(BC:GetColor("WARLOCK"));
-    ZebRaidDialogTotalStatsHunters:SetTextColor(BC:GetColor("HUNTER"));
+    ZebRaidDialogTotalStatsWarriors:SetTextColor(self:GetClassColor("WARRIOR"));
+    ZebRaidDialogTotalStatsDruids:SetTextColor(self:GetClassColor("DRUID"));
+    ZebRaidDialogTotalStatsPaladins:SetTextColor(self:GetClassColor("PALADIN"));
+    ZebRaidDialogTotalStatsRogues:SetTextColor(self:GetClassColor("ROGUE"));
+    ZebRaidDialogTotalStatsPriests:SetTextColor(self:GetClassColor("PRIEST"));
+    ZebRaidDialogTotalStatsMages:SetTextColor(self:GetClassColor("MAGE"));
+    ZebRaidDialogTotalStatsShamans:SetTextColor(self:GetClassColor("SHAMAN"));
+    ZebRaidDialogTotalStatsWarlocks:SetTextColor(self:GetClassColor("WARLOCK"));
+    ZebRaidDialogTotalStatsHunters:SetTextColor(self:GetClassColor("HUNTER"));
     ZebRaidDialogTotalStatsTotal:SetTextColor(1, .6, 0);
 
     --
@@ -1292,10 +1291,10 @@ function ZebRaid:ShowListMembers()
             buttonNo = buttonNo + 1;
 
             if list.name == "Confirmed" then
-                local engClass = BC:GetReverseTranslation(RollCall:GetClass(name));
+                local engClass = self:GetEnglishClass(RollCall:GetClass(name));
                 confirmedCounts[engClass] = confirmedCounts[engClass] + 1;
             elseif list.name == "Reserved" then
-                local engClass = BC:GetReverseTranslation(RollCall:GetClass(name));
+                local engClass = self:GetEnglishClass(RollCall:GetClass(name));
                 totalCounts[engClass] = totalCounts[engClass] + 1;
             end
         end
