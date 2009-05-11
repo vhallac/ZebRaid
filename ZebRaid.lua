@@ -320,7 +320,8 @@ function ZebRaid:Start()
     -- remove the state for that DB.
     --
     for db, val in pairs(ZebRaidState) do
-        if (not self.UIMasters[db]) and
+        if (type(ZebRaidState[db]) == "table") and
+           (not self.UIMasters[db]) and
            (val.RaidID ~= self.RaidID)
         then
             self:Debug("Erasing db state " .. db);
@@ -652,6 +653,40 @@ function ZebRaid:RosterLib_RosterUpdated()
         self:InviteRemaining();
     end
     ]]
+    
+    --[[
+    Check the unsigned, signed and unsure lists for people in raid.
+    When you find them, move them to "confirmed".
+    ]]--
+    local state = ZebRaidState[ZebRaidState.KarmaDB];
+    if state then
+        local playersToMove = {}
+        local listsToScan = {
+            "GuildList",
+            "SignedUp",
+            "Unsure",
+            "Reserved"
+        };
+        
+        for _, listName in pairs(listsToScan) do
+            for pos, name in pairs(state.Lists[listName].members) do
+                if Roster:GetUnitIDFromName(name) then
+                    self:Debug("Moving " .. name .. " from " .. listName .. "to Confirmed");
+                    table.insert(playersToMove, {list = listName, pos = pos, name = name});
+                end
+            end
+        end
+
+        local confirmedList = state.Lists["Confirmed"];
+        for _, data in pairs(playersToMove) do
+            local fromList = state.Lists[data.list];
+            local fromPos = data.pos;
+            self:RemoveFromList(state, fromList, fromPos);
+            self:SendCommMessage("GUILD", "REMOVE_FROM_LIST", ZebRaidState.KarmaDB, data.list, fromPos);
+            self:AddToList(state, confirmedList, data.name);
+            self:SendCommMessage("GUILD", "ADD_TO_LIST", ZebRaidState.KarmaDB, "Confirmed", data.name);
+        end
+    end
 end
 
 function ZebRaid:InviteConfirmed()

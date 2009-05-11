@@ -141,10 +141,12 @@ function ZebRaid.OnCommReceive.ADD_TO_LIST(self, prefix, sender, distribution, K
 
     local state = ZebRaidState[KarmaDB];
 
-    local list = state.Lists[listName];
-    
-    if list then
-        ZebRaid:AddToList(state, list, name);
+    if state and state.Lists then
+        local list = state.Lists[listName];
+        
+        if list then
+            ZebRaid:AddToList(state, list, name);
+        end
     end
 end
 
@@ -153,10 +155,12 @@ function ZebRaid.OnCommReceive.REMOVE_FROM_LIST(self, prefix, sender, distributi
 
     local state = ZebRaidState[KarmaDB];
 
-    local list = state.Lists[listName];
+    if state and state.Lists then
+        local list = state.Lists[listName];
 
-    if list then
-        ZebRaid:RemoveFromList(state, list, nameOrPos);
+        if list then
+            ZebRaid:RemoveFromList(state, list, nameOrPos);
+        end
     end
 end
 
