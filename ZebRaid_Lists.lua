@@ -51,9 +51,6 @@ function ZebRaid:AddToList(state, list, name)
 			-- otherwise insert player to the end.
 			table.insert(destList.members, name);
 		end
-		if signupData then
-			signupData.list = destList.name;
-		end
 	end
 end
 

@@ -41,13 +41,13 @@
     </Layers>
     <Scripts>
       <OnDragStart>
-        ZebRaid:PlayerOnDragStart();
+        ZebRaid:PlayerOnDragStart(self);
       </OnDragStart>
       <OnDragStop>
-        ZebRaid:PlayerOnDragStop();
+        ZebRaid:PlayerOnDragStop(self);
       </OnDragStop>
       <OnDoubleClick>
-        ZebRaid:PlayerOnDoubleClick();
+        ZebRaid:PlayerOnDoubleClick(self, button);
       </OnDoubleClick>
       <OnEnter>
         if (this.tooltipText) then
@@ -948,7 +948,7 @@
             </Anchors>
             <Scripts>
                 <OnClick>
-                    ZebRaid:SendCommMessage("GUILD", "BROADCAST");
+                    ZebRaid:BroadcastComm("BROADCAST");
                 </OnClick>
             </Scripts>
           </Button>

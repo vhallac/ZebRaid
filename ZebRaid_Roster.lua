@@ -15,9 +15,9 @@ end
 
 function ZebRaid:RosterFinal()
 	if initialized then
+		initialized = false
 		self:UnregisterEvent("PARTY_MEMBERS_CHANGED")
 		self:UnregisterEvent("RAID_ROSTER_UPDATE")
-		initalized = false
 	end
 end
 
@@ -67,7 +67,7 @@ function ZebRaid:MembersChanged()
 
 	if updated then
 		self:Debug("Triggering ZebRaid_RosterUpdated");
-		self:TriggerEvent("ZebRaid_RosterUpdated")
+		self:SendMessage("ZebRaid_RosterUpdated")
 	end
 
 	self:Debug("ZebRaid:MembersChanged():END")
