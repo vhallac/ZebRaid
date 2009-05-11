@@ -76,10 +76,11 @@
       <AbsDimension x="100" y="13" />
     </Size>
     <Anchors>
-      <Anchor point="TOP" />
-      <Offset>
-        <AbsDimension x="0" y="0" />
-      </Offset>
+      <Anchor point="TOP">
+        <Offset>
+          <AbsDimension x="0" y="0" />
+        </Offset>
+      </Anchor>
     </Anchors>
     <Layers>
       <Layer level="BACKGROUND">
@@ -121,10 +122,11 @@
       <AbsDimension x="100" y="100" />
     </Size>
     <Anchors>
-      <Anchor point="TOP" />
-      <Offset>
-        <AbsDimension x="0" y="0" />
-      </Offset>
+      <Anchor point="TOP">
+        <Offset>
+          <AbsDimension x="0" y="0" />
+        </Offset>
+      </Anchor>
     </Anchors>
     <Layers>
       <Layer />
@@ -478,7 +480,7 @@
             </Offset>
           </Shadow>
         </FontString>
-        <FontString name="$parentTotal" inherits="GameFontLarge" font="Fonts\FRIZQT__.TTF" text="TOTAL_LOCALE: 0">
+        <FontString name="$parentTotal" inherits="GameFontNormalLarge" font="Fonts\FRIZQT__.TTF" text="TOTAL_LOCALE: 0">
           <Anchors>
             <Anchor point="BOTTOMRIGHT" relativePoint="BOTTOMRIGHT">
               <Offset>

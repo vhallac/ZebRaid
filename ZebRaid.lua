@@ -1039,6 +1039,14 @@ function ZebRaid:FindSitoutInsertPos(list, name)
 	return insertPos
 end
 
+local EmptyTable = {}
+function ZebRaid:GetSitoutDates(name)
+	return ZebRaidPlayerData[name] and ZebRaidPlayerData[name].sitoutDates or EmptyTable;
+end
+
+function ZebRaid:GetSitoutDateIterator(name)
+end
+
 function ZebRaid:ShowListMembers()
 	local buttonNo = 1
 	local confirmedCounts = {
@@ -1288,6 +1296,12 @@ function ZebRaid:SetButtonTooltip(button, list, name)
 							(stats.signedCount or 0) .. "/" ..
 							(stats.sitoutCount or 0) .. "/" ..
 							(stats.penaltyCount or 0) .. "\n"
+	end
+
+	local sitoutDates = self:GetSitoutDates(name)
+	for _,v in ipairs(sitoutDates) do
+		button.tooltipText = button.tooltipText ..
+							"|c7f1fef00" .. v .. "|r\n"
 	end
 end
 
