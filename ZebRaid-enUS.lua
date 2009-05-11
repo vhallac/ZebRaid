@@ -8,6 +8,7 @@ AceLocale:RegisterTranslations("enUS", function()
         ["MELEE"] = "Melee DPS",
         ["HEALER"] = "Healer",
         ["RANGED"] = "Ranged DPS",
+		["HYBRID"] = "Hybrid w. Heal",
         ["TOTAL"] = "Total",
         ["RAID_ID"] = "Raid ID: ",
         ["SIGNEDUP"] = "Signed up",

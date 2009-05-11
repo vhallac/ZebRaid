@@ -81,6 +81,10 @@ Function ScrapeSection(table, message)
         End If
         If iRole <> -1 then
             attendRole = InnermostChild(table.rows(iRow).cells(iRole)).nodeValue
+            e = InStr(attendRole, " ")
+            If e <> 0 then
+                attendRole = Left(attendRole, e-1)
+            End If
         End If
 
         scraped = scraped & "    """
@@ -115,19 +119,26 @@ Function ScrapeRaidList(PageText)
     Set content = oDoc.getElementById("contentContainer")
     Set tables = content.getElementsByTagName("table")
 
-    Set cells = Tables(0).Rows(0).Cells
-    For iCol = 0 to cells.Length - 1
-        Set cell = InnermostChild(cells(iCol))
-        If not (cell is nothing or isNull(cell)) Then
-            cellTitle = trim(cell.nodeValue)
-            If left(cellTitle,4) = "Date" Then locDate = iCol
-            If left(cellTitle,7) = "Dungeon" Then locUrl = iCol
-            If locDate <> -1 And locUrl <> -1 Then Exit For
-        End If
+    ' The top row may be the header, or the page selector, dpeending on number
+    ' of events in the list. Outer for detects the correct location.
+    ' At exit, locRowStart holds the first row that contains raid data
+    For iRow = 0 to 1
+        Set cells = Tables(0).Rows(iRow).Cells
+        locRowStart = iRow + 1
+        For iCol = 0 to cells.Length - 1
+            Set cell = InnermostChild(cells(iCol))
+            If not (cell is nothing or isNull(cell)) Then
+                cellTitle = trim(cell.nodeValue)
+                If left(cellTitle,4) = "Date" Then locDate = iCol
+                If left(cellTitle,7) = "Dungeon" Then locUrl = iCol
+                If locDate <> -1 And locUrl <> -1 Then Exit For
+            End If
+        Next
+        If locDate <> -1 And locUrl <> -1 Then Exit For
     Next
 
     If locDate <> -1 And locUrl <> -1 Then
-        For iRow = 1 to Tables(0).Rows.Length - 1
+        For iRow = locRowStart to Tables(0).Rows.Length - 1
             Set cell1 = InnermostChild(Tables(0).Rows(iRow).Cells(locUrl))
             scraped = scraped & _
                 "<option value=""" & _
@@ -211,7 +222,8 @@ With fso
     End If
 End With
 
-raidListPage = ReadPage("http://www.zebraguild.com/wrm/index.php", null)
+raidListPage = ReadPage("http://www.zebraguild.com/wrm/index.php?Sort=Date&SortDescending=1", null)
+'raidListPage = ReadPage("http://www.zebraguild.com/wrm/index.php", null)
 choices = ScrapeRaidList(raidListPage)
 
 Set ie = WScript.CreateObject("InternetExplorer.Application", "IE_")

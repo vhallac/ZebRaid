@@ -15,5 +15,6 @@ ZebRaid.lua
 ZebRaid_Lists.lua
 ZebRaid_Util.lua
 ZebRaid_Comms.lua
+ZebRaid_Roster.lua
 ZebRaid.xml
 signups.lua

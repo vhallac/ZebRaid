@@ -2,7 +2,6 @@
 "AceDB-2.0", "AceEvent-2.0", "AceComm-2.0");
 local L = AceLibrary("AceLocale-2.2"):new("ZebRaid");
 local Guild = LibStub("LibGuild-1.0")
-local Roster = AceLibrary("Roster-2.1");
 
 local options = {
     type = 'group',
@@ -30,28 +29,41 @@ local ListNames = {
     "Reserved"
 };
 
-local StartWasCalled = nil;
-local NeedRecalculateAfterUpdate = nil;
-local PlayerName = nil;
-local DraggingPlayer = nil;
+-- The letters we use in the lists to indicate raid role
+local RoleLetters = {
+	melee = "M",
+	tank = "T",
+	healer = "H",
+	ranged = "R",
+	hybrid = "Y"
+}
 
-ZebRaid.Lists = {};
-ZebRaid.RegisteredUsers = {};
+local StartWasCalled = nil
+local NeedRecalculateAfterUpdate = nil
+local PlayerName = nil
+local DraggingPlayer = nil
 
-local RemotePlayer = nil;
-local RemoteRaidIdList = nil;
+ZebRaid.Lists = {}
+ZebRaid.RegisteredUsers = {}
 
-ZebRaid.UiLockedDown = true;
+local RemotePlayer = nil
+local RemoteRaidIdList = nil
+
+ZebRaid.UiLockedDown = true
+
+-- Player information
+ZebRaidPlayerData = {}
+ZebRaidSitoutHistory = {}
 
 -- Temprary set up for add-on comms handler
-ZebRaid.OnCommReceive = {};
+ZebRaid.OnCommReceive = {}
 
 -- List of karma databases.
-ZebRaid.KarmaList = {};
+ZebRaid.KarmaList = {}
 
-ZebRaid.PlayerStats = {};
-ZebRaid.UIMasters = {};
-ZebRaidState = {};
+ZebRaid.PlayerStats = {}
+ZebRaid.UIMasters = {}
+ZebRaidState = {}
 
 -------------------------------
 -- UI and Ace Event Handlers --
@@ -143,8 +155,6 @@ function ZebRaid:OnEnable()
     Guild.RegisterCallback(self, "Connected", "MemberConnected")
     Guild.RegisterCallback(self, "Disconnected", "MemberDisconnected")
 
-    --self:RegisterEvent("RosterLib_RosterUpdated");
-
     if not UnitInRaid("player") then
         ZebRaidDialogCommandsInviteRaid:SetText(L["START_RAID"]);
     else
@@ -206,6 +216,19 @@ function ZebRaid:ParseLocalRaidData()
                 role = role,
                 note = note
             };
+			
+			if not ZebRaidPlayerData[name] then
+				-- New players enter at the bottom of sitout lists
+				-- list pos 0 is reserved for people who are chosen for this raid
+				ZebRaidPlayerData[name] = {
+					role = role,
+					sitouts = 0,
+					signed = 1,
+					sitoutPos = 1
+				}
+			else
+				ZebRaidPlayerData[name].signed = ZebRaidPlayerData[name].signed + 1
+			end
         end
     end
 end
@@ -218,8 +241,11 @@ function ZebRaid:Start()
     if StartWasCalled then
         StartWasCalled = nil;
         ZebRaidDialog:Hide();
+		ZebRaid:RosterFinal()
         return;
     end
+
+	self:RosterInit()
 
     if ZebRaidState.KarmaDB then
         local raidId = nil;
@@ -542,129 +568,6 @@ function ZebRaid:GuildStatusUpdated()
     end
 end
 
-local DoingFirstInvite = nil;
-
-function ZebRaid:RosterLib_RosterUpdated()
-    if not StartWasCalled then return; end
-
-    if self.UiLockedDown then return; end
-
-    self:Debug("ZebRaid:RosterLib_RosterUpdated()");
-
-    if (DoingFirstInvite and
-        GetNumPartyMembers() > 0 and
-        not UnitInRaid("player"))
-    then
-        self:Debug("Converting to raid");
-        ConvertToRaid();
-        DoingFirstInvite = nil;
-    end
-
-    --[[
-    if DoingFirstInvite then
-        -- Invite the rest from here only on the first invite.
-        -- This function will be called again for each player accepting 
-        -- the invite.
-        self:Debug("Inviting the rest")
-        DoingFirstInvite = false;
-        self:InviteRemaining();
-    end
-    ]]
-    
-    --[[
-    Check the unsigned, signed and unsure lists for people in raid.
-    When you find them, move them to "confirmed".
-    ]]--
-    local state = ZebRaidState[ZebRaidState.KarmaDB];
-    if state then
-        local playersToMove = {}
-        local listsToScan = {
-            "GuildList",
-            "SignedUp",
-            "Unsure",
-            "Reserved"
-        };
-        
-        for _, listName in pairs(listsToScan) do
-            for pos, name in pairs(state.Lists[listName].members) do
-                if Roster:GetUnitIDFromName(name) then
-                    self:Debug("Moving " .. name .. " from " .. listName .. "to Confirmed");
-                    table.insert(playersToMove, {list = listName, pos = pos, name = name});
-                end
-            end
-        end
-
-        local confirmedList = state.Lists["Confirmed"];
-        for _, data in pairs(playersToMove) do
-            local fromList = state.Lists[data.list];
-            local fromPos = data.pos;
-            self:RemoveFromList(state, fromList, fromPos);
-            self:SendCommMessage("GUILD", "REMOVE_FROM_LIST", ZebRaidState.KarmaDB, data.list, fromPos);
-            self:AddToList(state, confirmedList, data.name);
-            self:SendCommMessage("GUILD", "ADD_TO_LIST", ZebRaidState.KarmaDB, "Confirmed", data.name);
-        end
-    end
-end
-
-function ZebRaid:InviteConfirmed()
-
-    if self.UiLockedDown then return; end
-	self:StartInvite()
-	--[[
-
-    local state = ZebRaidState[ZebRaidState.KarmaDB];
-
-    if not state or not state.Lists then return; end
-
-    if (ZebRaid:Count(state.Lists["Confirmed"].members) == 0) then return; end
-
-    if (GetNumPartyMembers() < 2 and not UnitInRaid("player")) then
-        DoingFirstInvite = true;
-
-        -- Find first eligible member to invite.
-        invitePos = 0;
-        local list = state.Lists["Confirmed"];
-
-        for pos = 1,ZebRaid:Count(list.members) do
-            local name = list.members[pos];
-            if  name ~= PlayerName and Guild:IsMemberOnline(name) then
-                invitePos = pos;
-                break;
-            end
-        end
-
-        if (invitePos == 0) then return; end
-
-        self:Debug("Inviting first player: " .. list.members[invitePos]);
-        InviteUnit(list.members[invitePos]);
-
-        ZebRaidDialogCommandsInviteRaid:SetText(L["INVITE_REST"]);
-    elseif not UnitInRaid("player") then
-        -- We're in a party, but not in a raid. Convert to raid,
-        -- and change the button to allow inviting the rest of the poeple
-        ConvertToRaid();
-        ZebRaidDialogCommandsInviteRaid:SetText(L["INVITE_REST"]);
-    else
-        self:Debug("Inviting Others");
-        self:InviteRemaining();
-    end
-	]]--
-end
-
-function ZebRaid:InviteRemaining()
-    local state = ZebRaidState[ZebRaidState.KarmaDB];
-
-    for _, name in pairs(state.Lists["Confirmed"].members) do
-        if name ~= PlayerName and
-           not ( UnitInParty("player") or UnitInRaid("player") ) or
-           not Roster:GetUnitIDFromName(name)
-        then
-            self:Debug("Inviting: " .. name);
-            InviteUnit(name);
-        end
-    end
-end
-
 local LastUpdateTime = GetTime();
 
 function ZebRaid:OnUpdate()
@@ -769,8 +672,9 @@ function ZebRaid:GiveKarma()
 	-- Give on time karma to all Confirmed and Sitout users.
 	for pos, name in pairs(state.Lists["Confirmed"].members) do
 		-- Only confirmed people who are in raid deserve online karma. :-)
-		if Roster:GetUnitIDFromName(name) then
-			Karma_Add_Player(name, ON_TIME_KARMA_VAL, "on time", "P");
+		if self:IsPlayerInRaid(name) then
+			self:Debug("Giving on time karma to " .. name)
+			-- Karma_Add_Player(name, ON_TIME_KARMA_VAL, "on time", "P");
 		end
 	end
 end
@@ -937,14 +841,14 @@ function ZebRaid:ShowListMembers()
 		["ranged"] = 0,
 		["healer"] = 0,
 		["tank"] = 0,
-		["hybrid w. heal"] = 0
+		["hybrid"] = 0
     };
     local totalCounts = {
 		["melee"] = 0,
 		["ranged"] = 0,
 		["healer"] = 0,
 		["tank"] = 0,
-		["hybrid w. heal"] = 0
+		["hybrid"] = 0
     };
 
     -- If we haven't selected a list, or (for some reason) the
@@ -1051,7 +955,7 @@ function ZebRaid:SetButtonRole(button, list, name)
         end
 
         if data.role then
-            buttonRole:SetText(prefix .. data.role:sub(1,1):upper());
+            buttonRole:SetText(prefix .. (RoleLetters[data.role] or "X") );
         else
             buttonRole:SetText("?");
         end
@@ -1088,7 +992,7 @@ function ZebRaid:SetButtonColor(button, list, name)
     local buttonColor = getglobal(button:GetName() .. "Color");
     if Guild:IsMemberOnline(name) then
         if list.name == "Confirmed" and
-           Roster:GetUnitIDFromName(name)
+           self:IsPlayerInRaid(name)
         then
             -- Confirmed and in raid player background color
             buttonColor:SetTexture(0.1, 0.3, 0.1);
@@ -1098,7 +1002,7 @@ function ZebRaid:SetButtonColor(button, list, name)
         end
     else
         if list.name == "Confirmed" and
-           Roster:GetUnitIDFromName(name)
+           self:IsPlayerInRaid(name)
         then
             -- Offline: Confirmed and in raid player background color
             buttonColor:SetTexture(0.2, 0.2, 0.1);
@@ -1159,11 +1063,14 @@ function ZebRaid:UpdateCounts(panelName, counts)
                                                counts["healer"]);
     getglobal(panelName .. "Ranged"):SetText(L["RANGED"] .. ": " ..
                                              counts["ranged"]);
+    getglobal(panelName .. "Hybrid"):SetText(L["HYBRID"] .. ": " ..
+                                             counts["hybrid"]);
     getglobal(panelName .. "Total"):SetText(L["TOTAL"]..": " ..
                                             counts["tank"] +
                                             counts["melee"] +
                                             counts["healer"] +
-                                            counts["ranged"]);
+                                            counts["ranged"] +
+											counts["hybrid"]);
 end
 
 function ZebRaid:LockUI()
@@ -1213,6 +1120,7 @@ end
 
 function ZebRaid:OnHide()
     StartWasCalled = nil;
+	ZebRaid:RosterFinal()
 end
 
 function ZebRaid:StartInvite()
@@ -1232,9 +1140,6 @@ function ZebRaid:StartInvite()
 end
 
 function ZebRaid:DoInvites()
-	if not self.roster then self.roster = {} end
-	self:RegisterBucketEvent("RAID_ROSTER_UPDATE", 1, self.MembersChanged, self)
-	self:RegisterBucketEvent("PARTY_MEMBERS_CHANGED", 1, self.MembersChanged, self)
 	-- Periodic event to unlock the coroutine if it gets stuck
 	self:ScheduleRepeatingEvent("ZebRaid_PeriodicInviteCheck", self.PeriodicTimer, 1, self)
 	-- Construct a list of members to invite
@@ -1242,7 +1147,7 @@ function ZebRaid:DoInvites()
 	local inviteList={}
 	local inviteCount = 0
 	for _, name in pairs(state.Lists["Confirmed"].members) do
-		if name ~= UnitName("player") and not self.roster[name] then
+		if name ~= UnitName("player") and not self:IsPlayerInRaid(name) then
 			table.insert(inviteList, {name=name})
 			inviteCount = inviteCount + 1
 		end
@@ -1277,18 +1182,22 @@ function ZebRaid:DoInvites()
 				if waitingAccept == 4 or waitingAccept == inviteCount then
 				
 					local startTime = GetTime()
-					while not UnitInParty("player") do
+					while not ( UnitInParty("player") and
+								GetNumPartyMembers() > 1 )
+					do
 						self:Debug("Unit is not in party. Waiting.")
 						coroutine.yield()
 						-- Wait up to 15 seconds
 						if GetTime() - startTime > 15 then
 							self:Debug("Waited too long. Inviting another.")
-							inviteCount = inviteCount - 1
+							waitingAccept = waitingAccept - 1
 							break
 						end
 					end
 					
-					if UnitInParty("player") then
+					if UnitInParty("player") and
+					   GetNumPartyMembers() > 1
+					then
 						self:Debug("Unit is in party. Converting to raid.")
 						ConvertToRaid()
 						self:WaitForRaid()
@@ -1316,8 +1225,7 @@ function ZebRaid:DoInvites()
 	-- We should be in raid now. Invite everybody
 	for i, v in ipairs(inviteList) do
 		if not self:IsPlayerInRaid(v.name) then
-			if (not Guild:HasMember(v.name) or Guild:IsMemberOnline(v.name)) and
-				not self.roster[v.name]
+			if (not Guild:HasMember(v.name) or Guild:IsMemberOnline(v.name))
 			then
 				InviteUnit(v.name)
 			end
@@ -1326,16 +1234,6 @@ function ZebRaid:DoInvites()
 	
 	-- Remove the event handlers. We are done with them.
 	self:CancelScheduledEvent("ZebRaid_PeriodicInviteCheck")
-	self:UnregisterBucketEvent("PARTY_MEMBERS_CHANGED")
-	self:UnregisterBucketEvent("RAID_ROSTER_UPDATE")
-end
-
-function ZebRaid:IsPlayerInRaid(name)
-	if self.roster[name] then
-		return true
-	else
-		return false
-	end
 end
 
 function ZebRaid:WaitForRaid()
@@ -1347,47 +1245,18 @@ function ZebRaid:WaitForRaid()
 	end
 end
 
-function ZebRaid:MembersChanged()
-	self:Debug("ZebRaid:MembersChanged()")
-	-- Get rid of people who left the raid
-	for name, unit in pairs(self.roster) do
-		if not UnitInRaid(unit) or
-		   GetUnitName(unit) ~= name
-		then
-			self.roster[name] = nil
-		end
-	end
-	
-	-- Scan either the party, or the raid
-	if UnitInRaid("player") then
-		local n = GetNumRaidMembers()
-		for i=1,n do
-			local unit=string.format("raid%d", i)
-			local name=GetUnitName(unit)
-			if unit and UnitExists(unit) then
-				self.roster[name] = unit
-			end
-		end
-	elseif UnitInParty("player") then
-		local n = GetNumPartyMembers()
-		for i=1,n do
-			local unit=string.format("party%d", i)
-			local name=GetUnitName(unit)
-			if unit and UnitExists(unit) then
-				self.roster[name] = unit
-			end
-		end
-	end
-
-	coroutine.resume(self.coInvite)
-
-	self:Debug("ZebRaid:MembersChanged():END")
-end
-
 -- A timer to ensure we can break out of otherwise infinite loops in the coroutine
 function ZebRaid:PeriodicTimer()
 	--self:Debug("ZebRaid:PeriodicTimer()")
 	if coroutine.status(self.coInvite) == "suspended" then
 		coroutine.resume(self.coInvite)
 	end
+end
+
+function ZebRaid.SitoutOnVerticalScroll(frame)
+	-- We ignore frame. It should be ZebRaidDialogSitoutScrollFrame
+	-- No self in here. Get one. :)
+	local self = ZebRaid
+	
+	-- TODO: Some magic here to implement a scrolling, sorted, filtered checkbox list
 end
