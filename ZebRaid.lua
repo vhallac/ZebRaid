@@ -1506,6 +1506,13 @@ function ZebRaid:DoInvites()
 		end
 	end
 
+	for _, name in pairs(state.Lists["Sitout"].members) do
+		if name ~= UnitName("player") and not self:IsPlayerInRaid(name) then
+			table.insert(inviteList, {name=name})
+			inviteCount = inviteCount + 1
+		end
+	end
+
 	if inviteCount == 0 then return end
 
 	local finished = nil
