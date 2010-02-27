@@ -429,13 +429,12 @@ function ZebRaid:PlayerOnDragStop(frame)
 		list = frame.inList
 	end
 
-	-- Not signed up or unsigned => Cannot go to SignedUp, Unsure, Penalty, or
-	--							  Sitout
+	-- Not signed up or unsigned => Cannot go to SignedUp, Unsure, or Penalty
+	-- Allow Sitout for people who forgot to sign.
 	if not state.RegisteredUsers[frame.player] or
 	   not state.RegisteredUsers[frame.player].list
 	then
 		if ( selectedList == "Penalty" or
-			 selectedList == "Sitout" or
 			 selectedList == "SignedUp" or
 			 selectedList == "Unsure")
 		then
@@ -1027,6 +1026,24 @@ function ZebRaid:GetPlayerSitoutPos(name)
 	return sitoutPos
 end
 
+-- return true if a>b, false otherwise
+-- Compares dates of format MM/DD/YY
+local function isDateGreater(a, b)
+	-- Convert from MM/DD/YY to YY/MM/DD for all dates
+	a = a:gsub("^(.*)/(.*)$", "%2/%1")
+	b = b:gsub("^(.*)/(.*)$", "%2/%1")
+	return a > b
+end
+
+-- return true if a<b, false otherwise
+-- Compares dates of format MM/DD/YY
+local function isDateLesser(a, b)
+	-- Convert from MM/DD/YY to YY/MM/DD for all dates
+	a = a:gsub("^(.*)/(.*)$", "%2/%1")
+	b = b:gsub("^(.*)/(.*)$", "%2/%1")
+	return a < b
+end
+
 -- Find a list position in the list members where a new player should be inserted
 -- according to its sitoutPos value. The list must already be sorted by the sitoutInsertPos
 function ZebRaid:FindSitoutInsertPos(list, name)
@@ -1034,7 +1051,8 @@ function ZebRaid:FindSitoutInsertPos(list, name)
 	local playerSitoutCount = ZebRaidPlayerData[name] and ZebRaidPlayerData[name].sitoutCount or 0
 	local playerLastSitoutDate = self:GetLastSitoutDate(name)
 	local playerLastPenaltyDate = self:GetLastPenaltyDate(name)
-	local playerHasPenalty = playerLastPenaltyDate > playerLastSitoutDate
+	local playerHasPenalty = isDateGreater(playerLastPenaltyDate,
+										   playerLastSitoutDate)
 	local playerRole = RoleLetters[self:GetPlayerRole(name)] or "X"
 	local insertPos = nil
 	local curLastSitoutDate, curRole
@@ -1043,12 +1061,12 @@ function ZebRaid:FindSitoutInsertPos(list, name)
 		curSitoutCount = ZebRaidPlayerData[val] and ZebRaidPlayerData[val].sitoutCount or 0
 		curLastSitoutDate = self:GetLastSitoutDate(val)
 		curLastPenaltyDate = self:GetLastPenaltyDate(val)
-		curHasPenalty = curLastPenaltyDate > curLastSitoutDate
+		curHasPenalty = isDateGreater(curLastPenaltyDate, curLastSitoutDate)
 		curRole = RoleLetters[self:GetPlayerRole(val)] or "X"
 		if playerRole < curRole or
-		   (playerRole == curRole and playerHasPenalty) or
-		   (playerRole == curRole and playerLastSitoutDate < curLastSitoutDate and not curHasPenalty) or
-		   (playerRole == curRole and playerLastSitoutDate == curLastSitoutDate and playerSitoutCount < curSitoutCount and not curHasPenalty)
+			(playerRole == curRole and playerHasPenalty) or
+			(playerRole == curRole and isDateLesser(playerLastSitoutDate, curLastSitoutDate) and not curHasPenalty) or
+			(playerRole == curRole and playerLastSitoutDate == curLastSitoutDate and playerSitoutCount < curSitoutCount and not curHasPenalty)
 		then
 			insertPos = pos
 			break
@@ -1399,7 +1417,7 @@ function ZebRaid:SetButtonTooltip(button, list, name)
 	local penaltyDates = self:GetPenaltyDates(name)
 	for _,v in ipairs(penaltyDates) do
 		button.tooltipText = button.tooltipText ..
-							"|cdf1f1f00" .. v .. "|r\n"
+							"|cff1f1f00" .. v .. "|r\n"
 	end
 end
 
@@ -1745,8 +1763,11 @@ if DBM then
 
 
 	DBM.EndCombat = function (self, mod, wipe)
-		if ZebRaidState.KarmaDB and GetCurrentDungeonDifficulty() == 2 and BossKarmaLookup[mod.id] and not wipe then
-			ZebRaid:SetBossAndKarma(mod.id, BossKarmaLookup[mod.id])
+		if ZebRaidState.KarmaDB then
+			local difficulty = GetInstanceDifficulty()
+			if (difficulty == 2 or difficulty == 4) and BossKarmaLookup[mod.id] and not wipe then
+				ZebRaid:SetBossAndKarma(mod.id, BossKarmaLookup[mod.id])
+			end
 		end
 
 		DBMold(self, mod,wipe)
