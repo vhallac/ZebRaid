@@ -1261,6 +1261,12 @@ function ZebRaid:ShowListMembers()
 	self:UpdateCounts("ZebRaidDialogTotalStats", totalCounts)
 end
 
+-- Overrides for new version. This is a backward compatibility problem
+-- introduced by the wrm4 script.
+local RoleOverrides={
+	["healing"] = "healer"
+}
+
 function ZebRaid:GetPlayerRole(name)
 	local role = "unknown"
 	local state = ZebRaidState.KarmaDB and ZebRaidState[ZebRaidState.KarmaDB]
@@ -1272,11 +1278,11 @@ function ZebRaid:GetPlayerRole(name)
 		end
 
 		if data then
-			role = data.role
+			role = string.lower(data.role)
 		end
 	end
 
-	return role
+	return RoleOverrides[role] or role
 end
 
 function ZebRaid:SetButtonRole(button, list, name)
