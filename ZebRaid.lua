@@ -246,8 +246,14 @@ function ZebRaid:ParseLocalRaidData()
 					sitoutPos = 1
 				}
 			else
-				-- Overwrite all roles with current ones
-				ZebRaidPlayerData[name].role = role
+				-- Update the player role with the new one unless the role is
+				-- unknown. If the player role is not recorded yet, just stick
+				-- anything we have (including unknown) to it.
+				if ( not ZebRaidPlayerData[name].role or
+					 role ~= "unknown" )
+				then
+					ZebRaidPlayerData[name].role = role
+				end
 			end
 		end
 	end
