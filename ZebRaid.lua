@@ -1,6 +1,9 @@
-﻿ZebRaid = LibStub("AceAddon-3.0"):NewAddon("ZebRaid", "AceConsole-3.0", "AceEvent-3.0", "AceComm-3.0", "AceTimer-3.0")
+﻿local addonName, addonTable = ...
+ZebRaid = LibStub("AceAddon-3.0"):NewAddon("ZebRaid", "AceConsole-3.0", "AceEvent-3.0", "AceComm-3.0", "AceTimer-3.0")
 local L = LibStub("AceLocale-3.0"):GetLocale("ZebRaid", true)
 local Guild = LibStub("LibGuild-1.0")
+-- Allow objects access to addon functions
+addonTable.ZebRaid = ZebRaid
 
 local options = {
 	name = "ZebRaid",
@@ -30,16 +33,6 @@ local ListNames = {
 	"Sitout"
 }
 
--- The letters we use in the lists to indicate raid role
-local RoleLetters = {
-	melee = "M",
-	tank = "T",
-	healer = "H",
-	ranged = "R",
-	hybrid = "Y",
-	unknown = "?"
-}
-
 local StartWasCalled = nil
 local NeedRecalculateAfterUpdate = nil
 local PlayerName = nil
@@ -65,9 +58,11 @@ ZebRaid.OnCommReceive = {}
 -- List of karma databases.
 ZebRaid.KarmaList = {}
 
-ZebRaid.PlayerStats = {}
-ZebRaid.UIMasters = {}
+-- Saved variables
 ZebRaidState = {}
+ZebRaidPlayerData = {}
+
+
 
 -------------------------------
 -- UI and Ace Event Handlers --
@@ -104,7 +99,6 @@ function ZebRaid:OnInitialize()
 	ZebRaidDialogCommandsReset:SetText(L["RESET"])
 	ZebRaidDialogCommandsGiveKarma:SetText(L["KARMA"])
 	ZebRaidDialogCommandsAnnounce:SetText(L["ANNOUNCE"])
-	ZebRaidDialogCommandsCloseRaid:SetText(L["CLOSERAID"])
 	ZebRaidDialogCommandsSync:SetText(L["SYNCH"])
 	ZebRaidDialogCommandsUnlock:SetText(L["UNLOCK"])
 
@@ -123,15 +117,6 @@ function ZebRaid:OnInitialize()
 	ZebRaidDialogTotalStatsHealer:SetTextColor(self:GetClassColor("PRIEST"))
 	ZebRaidDialogTotalStatsRanged:SetTextColor(self:GetClassColor("MAGE"))
 	ZebRaidDialogTotalStatsTotal:SetTextColor(1, .6, 0)
-
-	--
-	-- Hide all player buttons
-	--
-	for i=1, MAX_NUM_BUTTONS do
-		local button = getglobal("ZebRaidDialogButton" .. i)
-		button:ClearAllPoints()
-		button:Hide()
-	end
 
 	--
 	-- Prepare the popup dialog
@@ -153,22 +138,20 @@ function ZebRaid:OnInitialize()
 		whileDead = 1,
 		hideOnEscape = 1
 	}
-	StaticPopupDialogs["ZEBRAID_CONFIRM_REMOTE_CLOSE"] = {
-		text = L["CLOSECONFIRMATION"],
-		button1 = "Yes",
-		button2 = "No",
-		OnAccept = function(data)
-			ZebRaid:DoCloseRaid(data)
-			self:BroadcastComm("CLOSE_RAID", ZebRaidState.KarmaDB)
-		end,
-		timeout = 0,
-		whileDead = 1,
-		hideOnEscape = 1
-	}
-
 end
 
 function ZebRaid:OnEnable()
+	-- Set the saved variable backend for modules
+	self:SetStateBackend(ZebRaidState)
+	self:SetPlayerDataBackend(ZebRaidPlayerData)
+
+	if not self.state then
+		---
+		--- Create the state object
+		---
+		self.state = self:NewState()
+	end
+
 	PlayerName, _ = UnitName("player")
 
 	Guild.RegisterCallback(self, "Update", "GuildStatusUpdated")
@@ -189,12 +172,16 @@ function ZebRaid:OnEnable()
 	self:Tracker_Init()
 
 	-- select the indicated karma DB when appropriate:
-	-- i.e. when we have a DB selected, and the raid is not closed.
-	if ZebRaidState.KarmaDB and ZebRaidState[ZebRaidState.KarmaDB] then
+	if self.state:GetKarmaDb() then
 		if Karma_command then
-			Karma_command("use " .. ZebRaidState.KarmaDB)
+			Karma_command("use " .. self.state:GetKarmaDb())
 		end
 	end
+
+	--
+	-- Fill the lists out according to online and registered users
+	--
+	self:InitializeLists()
 
 	-- Tell the rest of the guild that we are here.
 	self:BroadcastComm("BROADCAST")
@@ -211,54 +198,6 @@ function ZebRaid:OnDisable()
 	self:CommFinal()
 end
 
-function ZebRaid:ParseLocalRaidData()
-	for _,val in pairs(ZebRaid.Signups) do
-		self:Debug("Value: " .. val)
-		local name, status, role, note =
-			select(3, val:find("^([^:]+):([^:]+):([^:]+):?(.*)"))
-
-		local list = nil
-
-		if status == "signed" then
-			list = "SignedUp"
-		elseif status == "unsure" then
-			list = "Unsure"
-		end
-
-		if note == "" then
-			note = nil
-		end
-
-		if Guild:HasMember(name) then
-			-- If we didn't gkick the user since sign-up, add him to the RegisteredUsers table
-			self.RegisteredUsers[name] = {
-				status = status,
-				list = list,
-				role = role,
-				note = note
-			}
-
-			if not ZebRaidPlayerData[name] then
-				-- New players enter at the bottom of sitout lists
-				-- list pos 0 is reserved for people who are chosen for this raid
-				ZebRaidPlayerData[name] = {
-					role = role,
-					sitoutPos = 1
-				}
-			else
-				-- Update the player role with the new one unless the role is
-				-- unknown. If the player role is not recorded yet, just stick
-				-- anything we have (including unknown) to it.
-				if ( not ZebRaidPlayerData[name].role or
-					 role ~= "unknown" )
-				then
-					ZebRaidPlayerData[name].role = role
-				end
-			end
-		end
-	end
-end
-
 function ZebRaid:Start()
 	self:Debug("ZebRaid:Start")
 
@@ -273,77 +212,41 @@ function ZebRaid:Start()
 
 	self:RosterInit()
 
-	if ZebRaidState.KarmaDB then
-		if ZebRaidState[ZebRaidState.KarmaDB] and ZebRaidState[ZebRaidState.KarmaDB].RaidClosed then
-			ZebRaidDialogReportMaster:SetText(L["REPORT_RAID_CLOSED"])
-		elseif not self.UIMasters[ZebRaidState.KarmaDB] then
+	local karmaDb = self.state:GetKarmaDb()
+	local uiMaster = self.state:GetUiMaster(karmaDb)
+	if karmaDb then
+		if not uiMaster then
 			ZebRaidDialogReportMaster:SetText(L["REPORT_MASTER_NONE"])
-		elseif self.UIMasters[ZebRaidState.KarmaDB] == PlayerName then
+		elseif uiMaster == PlayerName then
 			ZebRaidDialogReportMaster:SetText(L["REPORT_MASTER_SELF"])
 		else
-			ZebRaidDialogReportMaster:SetText(L["REPORT_MASTER_OTHER"] .. self.UIMasters[ZebRaidState.KarmaDB])
-		end
-
-		if not self.PlayerStats[ZebRaidState.KarmaDB] then
-			self.PlayerStats[ZebRaidState.KarmaDB] = {}
+			ZebRaidDialogReportMaster:SetText(L["REPORT_MASTER_OTHER"] .. uiMaster)
 		end
 	else
 		ZebRaidDialogReportMaster:SetText(L["REPORT_NO_DB"])
 	end
 
-	--
-	-- If we are not the master or we do not know the master of a list,
-	-- and if the DB's raid ID does not match our current raid ID, then
-	-- remove the state for that DB.
-	--
-	for db, val in pairs(ZebRaidState) do
-		if (type(ZebRaidState[db]) == "table") and
-		   (not self.UIMasters[db]) and
-		   (val.RaidID ~= self.RaidID)
-		then
-			self:Debug("Erasing db state " .. db)
-			ZebRaidState[db] = nil
-		end
-	end
+	-- Get rid of left-over state information
+	self.state:Cleanup()
 
-	if self:Count(self.KarmaList)==0 and KarmaList then
+	-- If our karma db name list is empty, and if Ni_Karma is loaded, copy the
+	-- database names in.
+	if #self.KarmaList == 0 and KarmaList then
 		-- Copy the Karma database names
 		for db, val in pairs(KarmaList) do
 			table.insert(self.KarmaList, db)
 		end
 	end
 
-	--
-	-- Parse the signup list
-	--
-	if ( not self.RegisteredUsers ) or
-	   ( self:Count(self.RegisteredUsers) == 0 ) then
-		self:ParseLocalRaidData()
-	end
-
-	if ZebRaidState.KarmaDB and
-	   ZebRaidState[ZebRaidState.KarmaDB]
-	then
-		local state = ZebRaidState[ZebRaidState.KarmaDB]
-		--
-		-- Fill the lists out according to online and registered users
-		--
-		self:InitializeListContents(state)
-	end
-
 	-- Display the current setup
-	local raidID = ZebRaid.RaidID
-	if ZebRaidState.KarmaDB and
-	   ZebRaidState[ZebRaidState.KarmaDB] and
-	   ZebRaidState[ZebRaidState.KarmaDB].RaidID
-	then
-		raidID = ZebRaidState[ZebRaidState.KarmaDB].RaidID
-	end
+	local raidID = self.state:GetRaidId() or ZebRaid.RaidID
 
 	ZebRaidDialogPanelTitle:SetText(L["RAID_ID"] .. raidID)
 	self:ShowListMembers()
 
+	-- TODO: Tracker not supported yet...
 	-- If there is an offline player in the Sitout list, ask their alts' tracker to respond
+--[[
 	if ZebRaidState.KarmaDB and
 	   ZebRaidState[ZebRaidState.KarmaDB]
 	then
@@ -361,29 +264,10 @@ function ZebRaid:Start()
 			end
 		end
 	end
-
+--]]
 	StartWasCalled = true
 
 	ZebRaidDialog:Show()
-end
-
-function ZebRaid:AddButtonToList(list, button)
-	-- Place the button in its list
-	button:ClearAllPoints()
-	local slot = getglobal("ZebRaidDialogPanel" .. list.name ..
-						   "Slot" .. list.freeSlot)
-	if slot == nil then
-		button:ClearAllPoints()
-		button:Hide()
-		return
-   end
-	button:SetPoint("TOP", slot)
-	button:SetHitRectInsets(0, 0, 0, 0)
-	button:SetFrameLevel(slot:GetFrameLevel() + 20)
-	button:RegisterForDrag("LeftButton")
-	button.inList = list
-	list.freeSlot = list.freeSlot + 1
-	button:Show()
 end
 
 local movingButtonLevel
@@ -400,6 +284,16 @@ function ZebRaid:PlayerOnDragStart(frame)
 	frame:SetFrameLevel(movingButtonLevel + 30)
 end
 
+local destListNames = {
+	"GuildList",
+	"SignedUp",
+	"Unsure",
+	"Confirmed",
+	"Reserved",
+	"Penalty",
+	"Sitout"
+}
+
 function ZebRaid:PlayerOnDragStop(frame)
 	self:Debug("PlayerOnDragStop")
 
@@ -408,10 +302,8 @@ function ZebRaid:PlayerOnDragStop(frame)
 
 	if self.UiLockedDown then self:ShowListMembers(); return end
 
-	local state = ZebRaidState[ZebRaidState.KarmaDB]
-
 	local selectedList = nil
-	for list, _ in pairs(state.Lists) do
+	for _, list in ipairs(destListNames) do
 		if MouseIsOver(getglobal("ZebRaidDialogPanel" .. list )) then
 			selectedList = list
 			break
@@ -428,18 +320,20 @@ function ZebRaid:PlayerOnDragStop(frame)
 	end
 	self:Debug("MouseIsOver: " .. (selectedList or "nothing"))
 
+	-- Go back from visual to logical list object: If we've dropped on a new
+	-- list, shoose that list. If not, then choose the list the button
+	-- originated from.
 	local list
 	if selectedList then
-		list = state.Lists[selectedList]
+		list = selectedList.listObj
 	else
 		list = frame.inList
 	end
 
 	-- Not signed up or unsigned => Cannot go to SignedUp, Unsure, or Penalty
 	-- Allow Sitout for people who forgot to sign.
-	if not state.RegisteredUsers[frame.player] or
-	   not state.RegisteredUsers[frame.player].list
-	then
+	local signStat = self.state:GetSignupStatus(frame.player)
+	if signStat == "unsigned" or signStat == "unknown" then
 		if ( selectedList == "Penalty" or
 			 selectedList == "SignedUp" or
 			 selectedList == "Unsure")
@@ -448,44 +342,27 @@ function ZebRaid:PlayerOnDragStop(frame)
 		end
 	else
 		-- Unsure => Cannot go to Penalty
-		if ( selectedList == "Penalty" and
-			 state.RegisteredUsers[frame.player].list == "Unsure")
-		then
+		if selectedList == "Penalty" and signStat == "unsure" then
 			list = frame.inList
 		end
 
 		-- SignedUp or Unsure cannot go back to guild
-		if ( state.RegisteredUsers[frame.player] and
-			 state.RegisteredUsers[frame.player].list and
-			 selectedList == "GuildList" )
-		then
+		if signStat ~= "unknown" and selectedList == "GuildList" then
 			list = frame.inList
 		end
 
 		-- SignedUp and Unsure cannot go each other
-		if ( ( selectedList == "SignedUp" or
-			   selectedList == "Unsure" ) and
-			   state.RegisteredUsers[frame.player].list ~= selectedList)
+
+		if  ( signStat == "signed" and selectedList == "Unsure" ) or
+			( signStat == "unsure" and selectedList == "SignedUp" )
 		then
 			list = frame.inList
 		end
 	end
 
+	-- FIXME: List handling will be modified
 	if list ~= frame.inList then
-		-- Remove from the old one
-		self:RemoveFromList(state, frame.inList, frame.player)
-		self:BroadcastComm("REMOVE_FROM_LIST", ZebRaidState.KarmaDB, frame.inList.name, frame.player)
-
-		-- Insert to new list
-		-- If player is offline, and the target list is online list, then
-		-- do not add to the target list.
-		if list.name ~= "GuildList" or
-		   Guild:IsMemberOnline(frame.player)
-		then
-			self:AddToList(state, list, frame.player)
-			self:BroadcastComm("ADD_TO_LIST", ZebRaidState.KarmaDB, list.name, frame.player)
-		end
-
+		self.state:SetAssignment(button.player, list:GetAssignment())
 	end
 
 	DraggingPlayer = nil
@@ -498,26 +375,45 @@ function ZebRaid:PlayerOnDoubleClick(frame, button)
 
 	if self.UiLockedDown then return end
 
-	local state = ZebRaidState[ZebRaidState.KarmaDB]
-	local list = ZebRaid:FindTargetList(frame.inList, frame.player)
-
-	if list then
-		-- Remove from the old one
-		self:RemoveFromList(state, frame.inList, frame.player)
-		self:BroadcastComm("GUILD", "REMOVE_FROM_LIST", ZebRaidState.KarmaDB, frame.inList.name, frame.player)
-
-		-- Insert to new list
-		-- If player is offline, and the target list is online list, then
-		-- do not add to the target list.
-		if list.name ~= "GuildList" or
-		   Guild:IsMemberOnline(frame.player)
-		then
-			self:AddToList(state, list, frame.player)
-			self:BroadcastComm("ADD_TO_LIST", ZebRaidState.KarmaDB, list.name, frame.player)
-		end
-
+	local newassignment = self:ToggleAssignment(frame.player)
+	if self.state:GetAssignment(frame.player) ~= newassignment then
+		self.state:SetAssignment(frame.player, newassignment)
 		self:ShowListMembers()
 	end
+end
+
+-- Find a suitable assignment for the specified player
+-- RETURNS: the selected list, or null.
+function ZebRaid:ToggleAssignment(name)
+	local assignment = self.state:GetAssignment(name)
+	local signup = self.state:GetSignupStatus(name)
+	local newassignment = "unassigned"
+
+	if assignment == "unassigned" then
+		if signup == "signed" then
+			newassignment = "confirmed"
+		elseif signup == "unsure" then
+			if Guild:IsMemberOnline(name) then
+				newassignment = "confirmed"
+			else
+				newassignment = "reserved"
+			end
+		else -- Guild list: only shows online people, so I must want to confirm them
+			newassignment = "confirmed"
+		end
+	elseif assignment == "reserved" or
+		assignment == "confirmed" or
+		assignment == "penalty" or
+		assignment == "sitout"
+	then
+		newassignment = "unassigned"
+	end
+
+	-- TODO: Want to implement this?
+	-- If the guy has a penalty, he moves to sitout
+	-- regardless of the current selection
+
+	return newassignment;
 end
 
 function ZebRaid:MemberConnected(name)
@@ -532,29 +428,19 @@ function ZebRaid:MemberConnected(name)
 
 	if Guild:GetLevel(name) ~= 80 then return end
 
-	local state = ZebRaidState[ZebRaidState.KarmaDB]
+	if not self.state:GetKarmaDb() then return end
 
-	if not state or not state.Lists then return end
-
-	local found = nil
-
-	for listName, list in pairs(state.Lists) do
-		for i, val in pairs(list.members) do
-			if val == name then
-				found = true
-			end
-		end
+	if self.state:GetAssignment(name) == "unknown" then
+		self.state:SetAssignment(name, "unassigned")
 	end
 
-	if not found then
-		self:AddToList(state, state.Lists["GuildList"], name)
-		-- FIXME: Should be unneeded. Double check.
-		-- self:SendCommMessage("GUILD", "ADD_TO_LIST", ZebRaidState.KarmaDB, "GuildList", name)
-	end
-
+	-- FIXME: This is really overkill. We should have a button object, and a way
+	-- to get the button of the player. That way we don't redraw the world when
+	-- all we need is a single color change.
 	NeedRecalculateAfterUpdate = true
 
-	-- Since this instance is the current master, let the alt know where to report status
+	-- Since this instance is the current master, let the alt know where to
+	-- report status
 	self:Tracker_SetTracker(name)
 end
 
@@ -563,16 +449,15 @@ function ZebRaid:MemberDisconnected(name)
 
 	if self.UiLockedDown then return end
 
-	local state = ZebRaidState[ZebRaidState.KarmaDB]
+	if not self.state:GetKarmaDb() then return end
 
-	if not state or not state.Lists then return end
+	if self.state:GetAssignment(name) == "unassigned" and
+		self.state:GetSignupStatus(name) == "unknown"
+	then
+		self.state:RemoveAssignment(name)
+	end
 
-	self:RemoveFromList(state, state.Lists["GuildList"], name)
-	-- FIXME: Should not be necessary. Double check
-	-- self:SendCommMessage("GUILD", "REMOVE_FROM_LIST", ZebRaidState.KarmaDB, "GuildList", name)
-
-	-- We either removed a user, or need to update the background color
-	-- of a user. Update it.
+	-- FIXME: See above note about overkill.
 	NeedRecalculateAfterUpdate = true
 end
 
@@ -590,28 +475,11 @@ function ZebRaid:MemberRemoved(name)
 
 	if self.UiLockedDown then return end
 
-	local state = ZebRaidState[ZebRaidState.KarmaDB]
+	if not self.state:GetKarmaDb() then return end
 
-	if not state or not state.Lists then return end
-
-	local changed = nil
-
-	for listName, list in pairs(state.Lists) do
-		for i, val in pairs(list.members) do
-			if val == name then
-				self:RemoveFromList(state, list, i)
-				--FIXME: Should be unnecessary. Double check
-				--self:SendCommMessage("GUILD", "REMOVE_FROM_LIST", ZebRaidState.KarmaDB, list.name, i)
-
-				changed = true
-				break
-			end
-		end
-	end
-
-	if changed then
-		NeedRecalculateAfterUpdate = true
-	end
+	-- We just gkicked the bugger. No assignment for him!
+	self.state:RemoveAssignment(name)
+	NeedRecalculateAfterUpdate = true
 end
 
 function ZebRaid:GuildStatusUpdated()
@@ -631,68 +499,46 @@ function ZebRaid:OnUpdate()
 	-- If we call ShowListMembers() too often, the UI becomes unresponsive.
 	-- e.g. resisting drag-drop attempts.
 	-- TODO: Optimize the loop.
+	-- FIXME: Remove OnUpdate() updates altogether. Update when something changes.
 	if not DraggingPlayer and (GetTime() - LastUpdateTime > 1) then
-		self:ShowListMembers()
+-- FIXME: See if we still need this. We shouldn't
+--		self:ShowListMembers()
 		LastUpdateTime = GetTime()
 	end
 end
 
 function ZebRaid:AutoConfirm()
-
 	if self.UiLockedDown then return end
 
-	local state = ZebRaidState[ZebRaidState.KarmaDB]
+	if not self.state:GetKarmaDb() then return end
 
-	if not state or not state.Lists then return end
-
-	local listFrom = state.Lists["SignedUp"]
-
-	local movePos = {}
-
-	local pos = 1
-	local count = self:Count(listFrom.members)
-	self:Debug("pos: " .. pos .. "listCount: " .. count)
-	while pos <= count do
-		self:Debug("pos: " .. pos .. "listCount: " .. self:Count(listFrom.members))
-		local name = listFrom.members[pos]
-
-		if (Guild:IsMemberOnline(name)) then
-			local listTo = self:FindTargetList(listFrom, name)
-
-			if listTo then
-				self:RemoveFromList(state, listFrom, pos)
-				self:BroadcastComm("REMOVE_FROM_LIST", ZebRaidState.KarmaDB, listFrom.name, pos)
-				self:AddToList(state, listTo, name)
-				self:BroadcastComm("ADD_TO_LIST", ZebRaidState.KarmaDB, listTo.name, name)
-			end
-			count = count - 1
-		else
-			pos = pos + 1
+	-- Move all unassigned people who are signed up to confirmed.
+	for i, name in self.SignedUp:GetIterator() do
+		if Guild:IsMemberOnline(name) then
+			self.state:SetAssignment(name, "confirmed")
 		end
 	end
+
 	self:ShowListMembers()
 end
 
 function ZebRaid:Announce()
 	if self.UiLockedDown then return end
 
-	local state = ZebRaidState[ZebRaidState.KarmaDB]
-
-	if not state or not state.Lists then return end
-
-	local list = state.Lists["Sitout"]
+	if not self.state:GetKarmaDb() then return end
 
 	local message = ""
-
-	if self:Count(list.members) > 0 then
-		for pos, name in pairs(list.members) do
+	local totalCount = self.Sitout:GetTotalCount()
+	if totalCount > 0 then
+		for i, name in self.Sitout:GetIterator() do
 			message = message .. name
-			if pos ~= self:Count(list.members) then
+			if i ~= totalCount then
 				message = message .. ", "
 			else
 				message = message .. "."
 			end
 		end
+	end
 
 	-- FIXME: Add note for raid karma db name (perhaps): T5SE may not mean for guildies.
 	SendChatMessage("--------------------\r\n" ..
@@ -704,15 +550,14 @@ function ZebRaid:Announce()
 		SendChatMessage(message, "GUILD")
 		SendChatMessage("--------------------", "GUILD")
 		]]
-	end
 end
 
 function ZebRaid:GiveKarma()
 	if self.UiLockedDown then return end
 
-	local state = ZebRaidState[ZebRaidState.KarmaDB]
+	if not self.state:GetKarmaDb() then return end
 
--- TODO: Make sure on time karma cannot be given twice for the same raid
+	-- TODO: Make sure on time karma cannot be given twice for the same raid
 	-- If we can give karma ...
 	if not Karma_Add_Player then
 		DEFAULT_CHAT_FRAME:AddMessage(L["NO_KARMA_ADDON"])
@@ -724,12 +569,8 @@ function ZebRaid:GiveKarma()
 		return
 	end
 
-	local state = ZebRaidState[ZebRaidState.KarmaDB]
-
-	if not state or not state.Lists then return end
-
 	-- Give on time karma to all Confirmed and Sitout users.
-	for pos, name in pairs(state.Lists["Confirmed"].members) do
+	for pos, name in self.Confirmed:GetIterator() do
 		-- Only confirmed people who are in raid deserve online karma. :-)
 		if self:IsPlayerInRaid(name) then
 			self:Debug("Giving on time karma to " .. name)
@@ -737,148 +578,116 @@ function ZebRaid:GiveKarma()
 		end
 	end
 
-	for pos, name in pairs(state.Lists["Sitout"].members) do
+	for pos, name in self.Sitout:GetIterator() do
 		Karma_Add_Player(name, ON_TIME_KARMA_VAL, "on time", "P")
 	end
 end
 
-function ZebRaid:CloseRaid()
-	if self.UiLockedDown then return end
+function ZebRaid:InitializeLists()
+	local and_ = function (...)
+		local funcs={...}
 
-	if not ZebRaidState.KarmaDB then return end
-
-	local state = ZebRaidState[ZebRaidState.KarmaDB]
-
-	if not state or not state.Lists then return end
-
-	if state.RaidClosed then return end
-
-	-- Make sure users really wants to close someone else's raid.
-	if state.RaidID ~= self.RaidID then
-		-- DoCloseRaid() will be called by the dialog "yes" handler.
-		local dialog = StaticPopup_Show("ZEBRAID_CONFIRM_REMOTE_CLOSE", sender, raidListStr)
-		if dialog then
-			dialog.data = state
-		end
-	else
-		self:DoCloseRaid(state)
-		self:BroadcastComm("CLOSE_RAID", ZebRaidState.KarmaDB)
-	end
-end
-
-function ZebRaid:DoCloseRaid(state)
-	-- TODO: Remove the function ... again
-	state.RaidClosed = true
-	state.RaidCloseTime = self:GetRaidDate()
-
-	local playerStats = self.PlayerStats[karmaDB]
-
-	local minSitoutPos = 1
-	local maxSitoutPos = 1
-	local sitoutPosAdjust = 0
-	for _, stats in pairs(ZebRaidPlayerData) do
-		if stats.sitoutPos < minSitoutPos then
-			minSitoutPos = stats.sitoutPos
-		end
-		if stats.sitoutPos > maxSitoutPos then
-			maxSitoutPos = stats.sitoutPos
-		end
-	end
-
-	-- Move sitout to beginning of list
-	for _, name in pairs(state.Lists["Sitout"].members) do
-		local stat = ZebRaidPlayerData[name]
-		if stat then -- Unnecessary, but no harm in checking
-			stat.sitoutPos = minSitoutPos - 1
-			stat.sitoutCount = (stat.sitoutCount or 0) + 1
-			if not stat.sitoutDates then
-				stat.sitoutDates = {}
+		return function(name)
+			local res
+			for i, f in ipairs(funcs) do
+				res = res and f(name)
+				if not res then break end
 			end
-			table.insert(stat.sitoutDates, state.RaidCloseTime)
-			-- The lines below ensure unique sitoutPos values
-			-- Comment it out if sitoutPos for the same raid sitouts are equal
-			-- also add sitoutPosAdjust = 1
-			-- minSitoutPos = stat.sitoutPos
-			-- sitoutPosAdjust = sitoutPosAdjust + 1
-			sitoutPosAdjust = 1
-		end
+			return res
+			   end
 	end
 
-	-- Move penalties to the top of the list
-	for _, name in pairs(state.Lists["Penalty"].members) do
-		local stat = ZebRaidPlayerData[name]
-		if stat then -- Unnecessary, but no harm in checking
-			stat.sitoutPos = maxSitoutPos + 1
-			stat.penaltyCount = (stat.penaltyCount or 0) + 1
-			if not stat.penaltyDates then
-				stat.penaltyDates = {}
-			end
-			table.insert(stat.penaltyDates, state.RaidCloseTime)
-			-- The line below ensures unique sitoutPos values
-			-- Comment it out if sitoutPos for the same raid sitouts are equal
-			-- maxSitoutPos = stat.sitoutPos
-		end
+	local filter_by_signup = function(status)
+		return function(name)
+			return self:GetSignupStatus(name) == status
+			   end
 	end
 
-	-- Adjust sitoutPos so that the minimum is 1 again
-	for _, stats in pairs(ZebRaidPlayerData) do
-		stats.sitoutPos = stats.sitoutPos + sitoutPosAdjust
+	local filter_by_assignment = function(assignment)
+		return function(name)
+			return self.state:GetAssignment(name) == status
+			   end
 	end
 
-	-- And finally record the people who has signed up
+	local is_online = function(name)
+		return Guild:IsPlayerOnline(name)
+	end
+
+	if not self.GuildList then
+		self.GuildList = self:NewList("GuildList",
+									  getglobal("ZebRaidDialogPanelGuildList"),
+									  "unassigned")
+		self.GuildList:SetFilterFunc(and_(filter_by_signup("unknown"),
+										  filter_by_assignment("unassigned"),
+										  is_online))
+		self.GuildList:Update()
+	end
+
+	if not self.SignedUp then
+		self.SignedUp = self:NewList("SignedUp",
+									 getglobal("ZebRaidDialogPanelSignedUp"),
+									 "unassigned")
+		self.SignedUp:SetFilterFunc(and_(filter_by_signup("signed"),
+										 filter_by_assignment("unassigned")))
+		self.SignedUp:Update()
+	end
+
+	if not self.Unsure then
+		self.Unsure = self:NewList("Unsure",
+								   getglobal("ZebRaidDialogPanelUnsure"),
+								   "unassigned")
+		self.Unsure:SetFilterFunc(and_(filter_by_signup("unsure"),
+									   filter_by_assignment("unassigned")))
+		self.Unsure:Update()
+	end
+
+	if not self.Confirmed then
+		self.Confirmed = self:NewList("Confirmed",
+									  getglobal("ZebRaidDialogPanelConfirmed"),
+									  "confirmed")
+		self.Confirmed:SetFilterFunc(filter_by_assignment("confirmed"))
+		self.Confirmed:Update()
+	end
+
+	if not self.Reserved then
+		self.Reserved = self:NewList("Reserved",
+									 getglobal("ZebRaidDialogPanelReserved"),
+									 "reserved")
+		self.Confirmed:SetFilterFunc(filter_by_assignment("reserved"))
+		self.Reserved:Update()
+	end
+
+	if not self.Penalty then
+		self.Penalty = self:NewList("Penalty",
+									getglobal("ZebRaidDialogPanelPenalty"),
+								    "penalty")
+		self.Penalty:SetFilterFunc(filter_by_assignment("penalty"))
+		self.Penalty:Update()
+	end
+
+	if not self.Sitout then
+		self.Sitout = self:NewList("Sitout",
+								   getglobal("ZebRaidDialogPanelSitout"),
+								   "sitout")
+		self.Sitout:SetFilterFunc(filter_by_assignment("sitout"))
+		self.Sitout:Update()
+	end
+
+
+--[[ TODO: Tracker - How did it work again?
+	-- Create the lists
+	for _, list in pairs(ListNames) do
+		state.Lists[list] = self:NewList(list)
+	end
+
 	for name, val in pairs(state.RegisteredUsers) do
-		local stat = ZebRaidPlayerData[name]
-		if stat then -- Unnecessary, but no harm in checking
-			if val.status ~= "unsigned" then
-				stat.signedCount = (stat.signedCount or 0) + 1
-			end
+		-- Tell all registered users that they are main chars
+		-- if they are online
+		if Guild:IsMemberOnline(name) then
+			self:Tracker_SetPlayerMain(name)
 		end
 	end
-end
-
-function ZebRaid:InitializeListContents(state)
-	if not state.Lists then
-		state.Lists = {}
-
-		-- Create the lists
-		for _, list in pairs(ListNames) do
-			state.Lists[list] = self:NewList(list)
-		end
-
-		for name, val in pairs(state.RegisteredUsers) do
-			-- Tell all registered users that they are main chars
-			-- if they are online
-			if Guild:IsMemberOnline(name) then
-				self:Tracker_SetPlayerMain(name)
-			end
-
-			list = val.list
-
-			if list then
-				self:AddToList(state, state.Lists[list], name)
-			end
-		end
-	end
-
-	-- First, empty the guild list
-	table.wipe(state.Lists["GuildList"].members)
-
-	-- Populate the guild list with online users
-	-- They need to be lvl 80, and not signed up yet.
-	for name in Guild:GetIterator("NAME", false) do
-		if (Guild:GetLevel(name) == 80 and
-			not (state.RegisteredUsers[name] and
-				 state.RegisteredUsers[name].list) and
-			not (self:FindInTable(state.Lists["Confirmed"].members, name) or
-				 self:FindInTable(state.Lists["Reserved"].members, name)) )
-		then
-			-- If online player has ever signed up, tell them that they are main chars
-			if ZebRaidPlayerData[name] then
-				self:Tracker_SetPlayerMain(name)
-			end
-			self:AddToList(state, state.Lists["GuildList"], name)
-		end
-	end
+--]]
 end
 
 function ZebRaid:Reset()
@@ -887,31 +696,15 @@ function ZebRaid:Reset()
 	if self.UiLockedDown then return end
 	if not self:IsEnabled() then return end
 
-	local state = ZebRaidState.KarmaDB and ZebRaidState[ZebRaidState.KarmaDB]
+	self.state:ResetAssignments()
 
-	if state then
-		self:Debug("resetting")
-		state.Lists = nil
-
-		for name, stat in pairs(state.RegisteredUsers) do
-			if stat.status == "signed" then
-				stat.list = "SignedUp"
-			elseif stat.status == "unsure" then
-				stat.list = "Unsure"
-			end
-		end
-
-		self:InitializeListContents(state)
-		--[[
-		self:BroadcastComm("ANNOUNCE_MASTER",
-							 ZebRaidState.KarmaDB, state.RaidID,
-							 state.RegisteredUsers,
-							 state.Lists)
-		]]--
-		self:ShowListMembers()
-	else
-		self:Debug("No state")
-	end
+	--[[
+	self:BroadcastComm("ANNOUNCE_MASTER",
+	ZebRaidState.KarmaDB, state.RaidID,
+	state.RegisteredUsers,
+	state.Lists)
+	--]]
+	self:ShowListMembers()
 end
 
 function ZebRaid:RaidSelection_OnShow()
@@ -938,7 +731,7 @@ function ZebRaid:RaidSelection_Populate()
 		info.text = name
 		info.func = function() ZebRaid:RaidSelection_OnClick() end
 		UIDropDownMenu_AddButton(info)
-		if name == ZebRaidState.KarmaDB then
+		if name == self.state:GetKarmaDb() then
 			UIDropDownMenu_SetSelectedValue(ZebRaidDialogRaidSelection, pos)
 		end
 	end
@@ -949,54 +742,34 @@ function ZebRaid:RaidSelection_OnClick()
 
 	UIDropDownMenu_SetSelectedValue(this.owner, this.value)
 	local karmaDB=this:GetText()
-	ZebRaidState.KarmaDB = karmaDB
+	self.state:SetKarmaDb(karmaDB)
+
 	if Karma_command then
 		Karma_command("use " .. karmaDB)
 	end
 
-	if not ZebRaidState[karmaDB] then
-		ZebRaidState[karmaDB] = {}
+	if not self.state:GetRaidId() then
+		self.state:SetRaidId(self.RaidID)
 	end
-
-	local state = ZebRaidState[karmaDB]
-
-	if not self.PlayerStats then
-		self.PlayerStats = {}
-	end
-
-	if not self.PlayerStats[karmaDB] then
-		self.PlayerStats[karmaDB] = {}
-	end
-
-	if ( not state.RegisteredUsers ) or
-	   ( self:Count(state.RegisteredUsers) == 0 )
-	then
-		self:Debug("Updating registered users for " .. karmaDB)
-		state.RaidID = self.RaidID
-		state.RegisteredUsers = self.RegisteredUsers
-		self:InitializeListContents(state)
-	end
-
-	-- Recalculate the Guild list: all online members that are not in other lists go to guild list.
-
 
 	-- Display the current setup
 	self:ShowListMembers()
 
-	local raidId = state.RaidID
+	local raidId = self.state:GetRaidId()
 
-	if not self.UIMasters[karmaDB] then
+	local uiMaster = self.state:GetUiMaster(karmaDB)
+	if not uiMaster then
 		ZebRaidDialogReportMaster:SetText(L["REPORT_MASTER_NONE"])
 		self:LockUI()
-	elseif (self.UIMasters[karmaDB] == PlayerName) then
+	elseif uiMaster == PlayerName then
 		ZebRaidDialogReportMaster:SetText(L["REPORT_MASTER_SELF"])
 		self:UnlockUI()
 	else
-		ZebRaidDialogReportMaster:SetText(L["REPORT_MASTER_OTHER"] .. self.UIMasters[karmaDB])
+		ZebRaidDialogReportMaster:SetText(L["REPORT_MASTER_OTHER"] .. uiMaster)
 		self:LockUI()
 	end
 
-	ZebRaidDialogPanelTitle:SetText(L["RAID_ID"] .. state.RaidID)
+	ZebRaidDialogPanelTitle:SetText(L["RAID_ID"] .. raidId)
 end
 
 ----------------------
@@ -1054,21 +827,21 @@ end
 -- according to its sitoutPos value. The list must already be sorted by the sitoutInsertPos
 function ZebRaid:FindSitoutInsertPos(list, name)
 	--local playerSitoutPos = self:GetPlayerSitoutPos(name)
-	local playerSitoutCount = ZebRaidPlayerData[name] and ZebRaidPlayerData[name].sitoutCount or 0
-	local playerLastSitoutDate = self:GetLastSitoutDate(name)
-	local playerLastPenaltyDate = self:GetLastPenaltyDate(name)
+	local playerSitoutCount = self.state.players:GetSitoutCount(name)
+	local playerLastSitoutDate = self.state.players:GetLastSitoutDate(name)
+	local playerLastPenaltyDate = self.state.players:GetLastPenaltyDate(name)
 	local playerHasPenalty = isDateGreater(playerLastPenaltyDate,
 										   playerLastSitoutDate)
-	local playerRole = RoleLetters[self:GetPlayerRole(name)] or "X"
+	local playerRole = RoleLetters[self.state.players:GetRole(name)] or "X"
 	local insertPos = nil
 	local curLastSitoutDate, curRole
 	local curLastPenaltyDate, curHasPenalty
 	for pos, val in ipairs(list.members) do
-		curSitoutCount = ZebRaidPlayerData[val] and ZebRaidPlayerData[val].sitoutCount or 0
-		curLastSitoutDate = self:GetLastSitoutDate(val)
-		curLastPenaltyDate = self:GetLastPenaltyDate(val)
+		curSitoutCount = self.state.players:GetSitoutCount(val)
+		curLastSitoutDate = self.state.players:GetLastSitoutDate(val)
+		curLastPenaltyDate = self.state.players:GetLastPenaltyDate(val)
 		curHasPenalty = isDateGreater(curLastPenaltyDate, curLastSitoutDate)
-		curRole = RoleLetters[self:GetPlayerRole(val)] or "X"
+		curRole = RoleLetters[self.state.players:GetRole(val)] or "X"
 		if playerRole < curRole or
 			(playerRole == curRole and playerHasPenalty) or
 			(playerRole == curRole and isDateLesser(playerLastSitoutDate, curLastSitoutDate) and not curHasPenalty) or
@@ -1082,114 +855,26 @@ function ZebRaid:FindSitoutInsertPos(list, name)
 	return insertPos
 end
 
-local EmptyTable = {}
-function ZebRaid:GetSitoutDates(name)
-	return ZebRaidPlayerData[name] and ZebRaidPlayerData[name].sitoutDates or EmptyTable;
-end
-
-function ZebRaid:GetLastSitoutDate(name)
-	local dates = self:GetSitoutDates(name)
-	return dates[#dates] or "01/01/09"
-end
-
-function ZebRaid:GetPenaltyDates(name)
-	return ZebRaidPlayerData[name] and ZebRaidPlayerData[name].penaltyDates or EmptyTable;
-end
-
-function ZebRaid:GetLastPenaltyDate(name)
-	local dates = self:GetPenaltyDates(name)
-	return dates[#dates] or "01/01/09"
-end
-
 function ZebRaid:GetRaidDate()
-	local raidId = ZebRaidState[ZebRaidState.KarmaDB].RaidID
+	local raidId = self.state:GetRaidId()
 	_,_,d,m,y=string.find(raidId, ".*_(%d+).(%d+).20(%d+)")
 	return string.format("%02d/%02d/%02d",d,m,y)
 end
 
-function ZebRaid:AddSitout(name)
-	-- TODO: Extract date from RaidID and reformat
-	local curDate = self:GetRaidDate()
-	local stat = ZebRaidPlayerData[name]
-	local lastSitout = self:GetLastSitoutDate(name)
-	if stat and curDate ~= lastSitout then -- This should always be true
-		if not stat.sitoutDates then
-			stat.sitoutDates = {}
-		end
-		table.insert(stat.sitoutDates, curDate)
-		stat.sitoutCount = (stat.sitoutCount or 0)+ 1
-	end
-end
-
-function ZebRaid:RemoveSitout(name)
-	local curDate = self:GetRaidDate()
-	local stat = ZebRaidPlayerData[name]
-	local lastSitout = self:GetLastSitoutDate(name)
-	if stat and lastSitout == curDate then -- This should always be true
-		if stat.sitoutDates then -- Ditto
-			table.remove(stat.sitoutDates, #stat.sitoutDates)
-			if #stat.sitoutDates == 0 then
-				stat.sitoutDates = nil
-			end
-		end
-		stat.sitoutCount = stat.sitoutCount - 1
-	end
-end
-
-function ZebRaid:AddPenalty(name)
-	local curDate = self:GetRaidDate()
-	local stat = ZebRaidPlayerData[name]
-	local lastPenalty = self:GetLastPenaltyDate(name)
-	if stat and lastPenalty ~= curDate then -- This should always be true
-		if not stat.penaltyDates then
-			stat.penaltyDates = {}
-		end
-		table.insert(stat.penaltyDates, curDate)
-		stat.penaltyCount = (stat.penaltyCount or 0) + 1
-	end
-end
-
-function ZebRaid:RemovePenalty(name)
-	local curDate = self:GetRaidDate()
-	local stat = ZebRaidPlayerData[name]
-	local lastPenalty = self:GetLastPenaltyDate(name)
-	if stat and lastPenalty == curDate then -- This should always be true
-		if stat.penaltyDates then -- Ditto
-			table.remove(stat.penaltyDates, #stat.penaltyDates)
-			if #stat.penaltyDates == 0 then
-				stat.penaltyDates = nil
-			end
-		end
-		stat.penaltyCount = stat.penaltyCount - 1
-	end
-end
-
 function ZebRaid:ShowListMembers()
-	local buttonNo = 1
-	local confirmedCounts = {
-		["melee"] = 0,
-		["ranged"] = 0,
-		["healer"] = 0,
-		["tank"] = 0,
-		["hybrid"] = 0,
-		["unknown"] = 0
-	}
-	local totalCounts = {
-		["melee"] = 0,
-		["ranged"] = 0,
-		["healer"] = 0,
-		["tank"] = 0,
-		["hybrid"] = 0,
-		["unknown"] = 0
-	}
-
+	local add_counts = function(o1, o2)
+		return {
+			GetCount = function (dummyobj, role)
+				return o1:GetCount(role) + o2:GetCount(role)
+			end }
+	end
 	-- If we haven't selected a list, or (for some reason) the
 	-- selection has no state, then do not attempt to draw anything.
-	if not ZebRaidState.KarmaDB or
-	   not ZebRaidState[ZebRaidState.KarmaDB]
-	then
-		self:UpdateCounts("ZebRaidDialogConfirmedStats", confirmedCounts)
-		self:UpdateCounts("ZebRaidDialogTotalStats", totalCounts)
+	if not self.state:GetKarmaDb() then
+		-- FIXME: This extra check should not be needed
+		self:UpdateCounts("ZebRaidDialogConfirmedStats", self.Confirmed)
+		self:UpdateCounts("ZebRaidDialogTotalStats", add_counts(self.Confirmed,
+																self.Reserved))
 		ZebRaidDialogPanelSignedUpLabel:SetText(L["SIGNEDUP"] .. " (0)")
 		ZebRaidDialogPanelUnsureLabel:SetText(L["UNSURE"] .. " (0)")
 		ZebRaidDialogPanelConfirmedLabel:SetText(L["CONFIRMED"] .. " (0)")
@@ -1197,256 +882,50 @@ function ZebRaid:ShowListMembers()
 		ZebRaidDialogPanelGuildListLabel:SetText(L["GUILDLIST"] .. " (0)")
 		ZebRaidDialogPanelPenaltyLabel:SetText(L["PENALTY"] .. " (0)")
 		ZebRaidDialogPanelSitoutLabel:SetText(L["SITOUT"] .. " (0)")
-		return
-	end
-
-	local state = ZebRaidState[ZebRaidState.KarmaDB]
-
-	ZebRaidDialogPanelSignedUpLabel:SetText(L["SIGNEDUP"] ..
-		" (" .. table.getn(state.Lists["SignedUp"].members) .. ")")
-	ZebRaidDialogPanelUnsureLabel:SetText(L["UNSURE"] ..
-		" (" .. table.getn(state.Lists["Unsure"].members) .. ")")
-	ZebRaidDialogPanelConfirmedLabel:SetText(L["CONFIRMED"] ..
-		" (" .. table.getn(state.Lists["Confirmed"].members) .. ")")
-	ZebRaidDialogPanelReservedLabel:SetText(L["RESERVED"] ..
-		" (" .. table.getn(state.Lists["Reserved"].members) .. ")")
-	ZebRaidDialogPanelGuildListLabel:SetText(L["GUILDLIST"] ..
-		" (" .. table.getn(state.Lists["GuildList"].members) .. ")")
-	ZebRaidDialogPanelPenaltyLabel:SetText(L["PENALTY"] ..
-		" (" .. table.getn(state.Lists["Penalty"].members) .. ")")
-	ZebRaidDialogPanelSitoutLabel:SetText(L["SITOUT"] ..
-		" (" .. table.getn(state.Lists["Sitout"].members) .. ")")
-
-
-	for listName, list in pairs(state.Lists) do
-		if (buttonNo > MAX_NUM_BUTTONS) then
-			-- Too many players. We cannot show them all.
-			-- Silently ignore the problem.
-			break
-		end
-
-		list.freeSlot = 1
-
-		for _, name in pairs(list.members) do
-			local button = getglobal("ZebRaidDialogButton" .. buttonNo)
-
-			self:SetButtonRole(button, list, name)
-			self:SetButtonLabel(button, list, name)
-			self:SetButtonColor(button, list, name)
-			self:SetButtonTooltip(button, list, name)
-
-			button.player = name
-			self:AddButtonToList(list, button)
-
-			buttonNo = buttonNo + 1
-
-			if list.name == "Confirmed" then
-				local role = self:GetPlayerRole(name)
-				confirmedCounts[role] = confirmedCounts[role] + 1
-			elseif list.name == "Reserved" then
-				local role = self:GetPlayerRole(name)
-				totalCounts[role] = totalCounts[role] + 1
-			end
-		end
-	end
-
-	--
-	-- Hide remaining player buttons
-	--
-	for i=buttonNo, MAX_NUM_BUTTONS do
-		local button = getglobal("ZebRaidDialogButton" .. i)
-		button:ClearAllPoints()
-		button:Hide()
-	end
-
-	for idx, val in pairs(totalCounts) do
-		totalCounts[idx] = totalCounts[idx] + confirmedCounts[idx]
-	end
-
-	self:UpdateCounts("ZebRaidDialogConfirmedStats", confirmedCounts)
-	self:UpdateCounts("ZebRaidDialogTotalStats", totalCounts)
-end
-
--- Overrides for new version. This is a backward compatibility problem
--- introduced by the wrm4 script.
-local RoleOverrides={
-	["healing"] = "healer"
-}
-
-function ZebRaid:GetPlayerRole(name)
-	local role = "unknown"
-	local state = ZebRaidState.KarmaDB and ZebRaidState[ZebRaidState.KarmaDB]
-
-	if state then
-		local data = ZebRaidPlayerData[name]
-		if not data then
-			data = state.RegisteredUsers[name]
-		end
-
-		if data then
-			role = string.lower(data.role)
-		end
-	end
-
-	return RoleOverrides[role] or role
-end
-
-function ZebRaid:SetButtonRole(button, list, name)
-	local buttonRole = getglobal(button:GetName() .. "Role")
-	local stats = nil
-	local prefix = ""
-	local state = ZebRaidState[ZebRaidState.KarmaDB]
-
-	if self.PlayerStats[ZebRaidState.KarmaDB] then
-		stats = self.PlayerStats[ZebRaidState.KarmaDB][name]
-	end
-
-	if state.RegisteredUsers[name] then
-		local data = state.RegisteredUsers[name]
-		-- Display the role of user on button only if we know about the user
-		-- FIXME: Need a registry of users/roles
-
-		if data.note then
-			prefix = prefix .. "*"
-		end
-	end
-
-	buttonRole:SetText(prefix .. (RoleLetters[self:GetPlayerRole(name)] or "X") )
-
-	buttonRole:SetTextColor(0.8, 0.8, 0)
-end
-
-function ZebRaid:SetButtonLabel(button, list, name)
-	local buttonLabel = getglobal(button:GetName() .. "Label")
-	local state = ZebRaidState[ZebRaidState.KarmaDB]
-	local stats = nil
-
-	if self.PlayerStats[ZebRaidState.KarmaDB] then
-		stats = self.PlayerStats[ZebRaidState.KarmaDB][name]
-	end
-
-	-- Put a * before the name if there is a note.
-	-- Put a x before the name if the user has unsigned from the raid
-	local prefix = ""
-	if state.RegisteredUsers[name] then
-		if state.RegisteredUsers[name].status == "unsigned" then
-			prefix = prefix .. "x"
-		end
-	end
-
-	buttonLabel:SetText(prefix .. name)
-	buttonLabel:SetTextColor(Guild:GetClassColor(name))
-end
-
-function ZebRaid:SetButtonColor(button, list, name)
-	local buttonColor = getglobal(button:GetName() .. "Color")
-	if Guild:IsMemberOnline(name) then
-		if list.name == "Confirmed" and
-		   self:IsPlayerInRaid(name)
-		then
-			-- Confirmed and in raid player background color
-			buttonColor:SetTexture(0.1, 0.3, 0.1)
-		else
-			-- Online player background color
-			buttonColor:SetTexture(0.05, 0.05, 0.05)
-		end
 	else
-		if list.name == "Confirmed" and
-		   self:IsPlayerInRaid(name)
-		then
-			-- Offline: Confirmed and in raid player background color
-			buttonColor:SetTexture(0.2, 0.2, 0.1)
-		elseif self:Tracker_IsAltOnline(name) then
-			buttonColor:SetTexture(0.1, 0.1, 0.2)
-		else
-			-- Offline player background color
-			buttonColor:SetTexture(0.2, 0.1, 0.1)
-		end
+		self.GuildList:Update()
+		self.SignedUp:Update()
+		self.Unsure:Update()
+		self.Confirmed:Update()
+		self.Reserved:Update()
+		self.Penalty:Update()
+		self.Sitout:Update()
+
+		ZebRaidDialogPanelSignedUpLabel:SetText(L["SIGNEDUP"] ..
+												" (" .. self.SignedUp:GetTotalCount() .. ")")
+		ZebRaidDialogPanelUnsureLabel:SetText(L["UNSURE"] ..
+												" (" .. self.Unsure:GetTotalCount() .. ")")
+		ZebRaidDialogPanelConfirmedLabel:SetText(L["CONFIRMED"] ..
+												" (" .. self.Confirmed:GetTotalCount() .. ")")
+		ZebRaidDialogPanelReservedLabel:SetText(L["RESERVED"] ..
+												" (" .. self.Reserved:GetTotalCount() .. ")")
+		ZebRaidDialogPanelGuildListLabel:SetText(L["GUILDLIST"] ..
+												" (" .. self.GuildList:GetTotalCount() .. ")")
+		ZebRaidDialogPanelPenaltyLabel:SetText(L["PENALTY"] ..
+												" (" .. self.Penalty:GetTotalCount() .. ")")
+		ZebRaidDialogPanelSitoutLabel:SetText(L["SITOUT"] ..
+												" (" .. self.Sitout:GetTotalCount() .. ")")
+
+		self:UpdateCounts("ZebRaidDialogConfirmedStats", self.Confirmed)
+		self:UpdateCounts("ZebRaidDialogTotalStats", add_counts(self.Confirmed,
+																self.Reserved))
 	end
 end
 
-function ZebRaid:SetButtonTooltip(button, list, name)
-	local state = ZebRaidState[ZebRaidState.KarmaDB]
-
-	-- Add the guild info to tooltip
-	button.tooltipDblLine = {
-		left = name,
-		right = Guild:GetClass(name)
-	}
-
-	button.tooltipText = "Rank: " .. (Guild:GetRank(name) or "not in guild") .. "\n"
-	if Guild:GetNote(name) then
-		button.tooltipText = button.tooltipText ..
-							 Guild:GetNote(name) .. "\n\n"
-	else
-		button.tooltipText = button.tooltipText .. "\n"
-	end
-
-	if not Guild:IsMemberOnline(name) then
-		if self:Tracker_IsAltOnline(name) then
-			button.tooltipText = button.tooltipText ..
-			                     "|cffff0000" .. L["ALT_ONLINE"] ..
-			                     ": " .. self:Tracker_GetCurrentAlt(name) ..
-			                     "|r\n\n"
-		else
-			button.tooltipText = button.tooltipText ..
-								 "|cffff0000" .. L["PLAYER_OFFLINE"] .. "|r\n\n"
-		end
-	end
-
-	if state.RegisteredUsers[name] then
-		local data = state.RegisteredUsers[name]
-
-		-- Put a note on unsigned users
-		if data.status == "unsigned" then
-			button.tooltipText = button.tooltipText ..
-								 "|cffff0000" .. L["PLAYER_UNSIGNED"] .. "|r\n\n"
-		end
-
-		if data.note then
-			button.tooltipText = button.tooltipText .. "\n"
-			button.tooltipText = button.tooltipText ..
-								 "|cffffff00Note: " .. data.note .. "|r\n"
-		end
-	end
-
-	-- Add sitout/penalty information to tooltip
-	local stats = ZebRaidPlayerData[name]
-
-	if stats then
-		button.tooltipText = button.tooltipText ..
-							"|c9f3fff00" .. L["SIGNSTATS"] .. "|r: " ..
-							(stats.signedCount or 0) .. "/" ..
-							(stats.sitoutCount or 0) .. "/" ..
-							(stats.penaltyCount or 0) .. "\n"
-	end
-
-	local sitoutDates = self:GetSitoutDates(name)
-	for _,v in ipairs(sitoutDates) do
-		button.tooltipText = button.tooltipText ..
-							"|c7f1fcf00" .. v .. "|r\n"
-	end
-	local penaltyDates = self:GetPenaltyDates(name)
-	for _,v in ipairs(penaltyDates) do
-		button.tooltipText = button.tooltipText ..
-							"|cff1f1f00" .. v .. "|r\n"
-	end
-end
-
-function ZebRaid:UpdateCounts(panelName, counts)
+function ZebRaid:UpdateCounts(panelName, list)
 	getglobal(panelName .. "Tank"):SetText(L["TANK"] .. ": " ..
-											   counts["tank"])
+										   list:GetCount("tank"))
 	getglobal(panelName .. "Melee"):SetText(L["MELEE"] .. ": " ..
-											 counts["melee"])
+											list:GetCount("melee"))
 	getglobal(panelName .. "Healer"):SetText(L["HEALER"] .. ": " ..
-											   counts["healer"])
+											 list:GetCount("healer"))
 	getglobal(panelName .. "Ranged"):SetText(L["RANGED"] .. ": " ..
-											 counts["ranged"])
+											 list:GetCount("ranged"))
 	getglobal(panelName .. "Total"):SetText(L["TOTAL"]..": " ..
-											counts["tank"] +
-											counts["melee"] +
-											counts["healer"] +
-											counts["ranged"])
+											list:GetCount("tank") +
+											list:GetCount("melee") +
+											list:GetCount("healer") +
+											list:GetCount("ranged"))
 end
 
 function ZebRaid:LockUI()
@@ -1455,7 +934,6 @@ function ZebRaid:LockUI()
 	ZebRaidDialogCommandsReset:Disable()
 	ZebRaidDialogCommandsGiveKarma:Disable()
 	ZebRaidDialogCommandsAnnounce:Disable()
-	ZebRaidDialogCommandsCloseRaid:Disable()
 	ZebRaidDialogCommandsInviteRaid:Disable()
 	ZebRaidDialogCommandsSync:Disable()
 --	UIDropDownMenu_DisableDropDown(ZebRaidDialogRaidSelection)
@@ -1463,14 +941,12 @@ function ZebRaid:LockUI()
 end
 
 function ZebRaid:UnlockUI()
-	local state = ZebRaidState.KarmaDB and ZebRaidState[ZebRaidState.KarmaDB]
-	if state and not state.RaidClosed then
+	if self.state:GetRaidId() then
 		ZebRaid.UiLockedDown = nil
 		ZebRaidDialogCommandsAutoConfirm:Enable()
 		ZebRaidDialogCommandsReset:Enable()
 		ZebRaidDialogCommandsGiveKarma:Enable()
 		ZebRaidDialogCommandsAnnounce:Enable()
-		ZebRaidDialogCommandsCloseRaid:Enable()
 		ZebRaidDialogCommandsInviteRaid:Enable()
 		ZebRaidDialogCommandsSync:Enable()
 --		UIDropDownMenu_EnableDropDown(ZebRaidDialogRaidSelection)
@@ -1480,23 +956,15 @@ end
 
 function ZebRaid:OnUnlock()
 	DEFAULT_CHAT_FRAME:AddMessage("DEBUG: OnUnlock")
-	local state = ZebRaidState[ZebRaidState.KarmaDB]
 
-	if not state then
+	if not self.state:GetKarmaDb() then
 		DEFAULT_CHAT_FRAME:AddMessage("ERROR: state is nil")
 		-- FIXME: Print an error message somewhere
 		return
 	end
 
-	self.UIMasters[ZebRaidState.KarmaDB] = PlayerName
+	self.state:SetUiMaster(self.state:GetKarmaDb(), PlayerName)
 
-	--[[
-	self:BroadcastComm("ANNOUNCE_MASTER",
-							ZebRaidState.KarmaDB, state.RaidID,
-							state.RegisteredUsers,
-							state.Lists)
-	]]--
-	DEFAULT_CHAT_FRAME:AddMessage("DEBUG: sent comm msg")
 	self:UnlockUI()
 	ZebRaidDialogReportMaster:SetText(L["REPORT_MASTER_SELF"])
 end
@@ -1526,17 +994,16 @@ function ZebRaid:DoInvites()
 	-- Periodic event to unlock the coroutine if it gets stuck
 	local hTimer = self:ScheduleRepeatingTimer("PeriodicTimer", 1)
 	-- Construct a list of members to invite
-	local state = ZebRaidState[ZebRaidState.KarmaDB]
 	local inviteList={}
 	local inviteCount = 0
-	for _, name in pairs(state.Lists["Confirmed"].members) do
+	for _, name in self.Confirmed:GetIterator() do
 		if name ~= UnitName("player") and not self:IsPlayerInRaid(name) then
 			table.insert(inviteList, {name=name})
 			inviteCount = inviteCount + 1
 		end
 	end
 
-	for _, name in pairs(state.Lists["Sitout"].members) do
+	for _, name in self.Sitout:GetIterator() do
 		if name ~= UnitName("player") and not self:IsPlayerInRaid(name) then
 			table.insert(inviteList, {name=name})
 			inviteCount = inviteCount + 1
@@ -1657,31 +1124,21 @@ local listsToScan = {
 function ZebRaid:RosterUpdated()
 	self:Debug("RosterUpdated")
 
-	-- Check the unsigned, signed and unsure lists for people in raid.
-	-- When you find them, move them to "confirmed".
-	local state = ZebRaidState[ZebRaidState.KarmaDB]
-	if state then
-		local playersToMove = {}
-
-		for _, listName in pairs(listsToScan) do
-			for pos, name in pairs(state.Lists[listName].members) do
-				if self:IsPlayerInRaid(name) then
-					self:Debug("Moving " .. name .. " from " .. listName .. "to Confirmed")
-					table.insert(playersToMove, {list = listName, pos = pos, name = name})
-				end
+	-- Move every player in raid to confirmed if they are not in penalty or sitout
+	if self.state:GetKarmaDb() then
+		-- FIXME: Make a roster object to fit in with the rest of the code
+		for name in self:GetRosterIterator() do
+			assignment = self.state:GetAssignment(name)
+			if assignment == "unassigned" or
+				assignment == "unknown" or
+				assignment == "reserved"
+			then
+				self.state:SetAssignment("confirmed")
 			end
 		end
-
-		local confirmedList = state.Lists["Confirmed"]
-		for _, data in pairs(playersToMove) do
-			local fromList = state.Lists[data.list]
-			local fromPos = data.pos
-			self:RemoveFromList(state, fromList, fromPos)
-			self:BroadcastComm("REMOVE_FROM_LIST", ZebRaidState.KarmaDB, data.list, fromPos)
-			self:AddToList(state, confirmedList, data.name)
-			self:BroadcastComm("ADD_TO_LIST", ZebRaidState.KarmaDB, "Confirmed", data.name)
-		end
 	end
+
+	self:ShowListMembers()
 
 	if self.coInvite and coroutine.status(self.coInvite) == "suspended" then
 		coroutine.resume(self.coInvite)
@@ -1719,10 +1176,6 @@ function ZebRaid:GiveBossKarma()
 		return
 	end
 
-	local state = ZebRaidState[ZebRaidState.KarmaDB]
-
-	if not state or not state.Lists then return end
-
 	-- Get the boss name and karma amount
 	local boss = ZebRaidDialogBoss:GetText()
 	local karma = ZebRaidDialogKarma:GetText()
@@ -1737,7 +1190,7 @@ function ZebRaid:GiveBossKarma()
 	-- Give on time karma to all raid members.
 	Karma_Add(karma .. " all " .. boss, "P")
 
-	for pos, name in pairs(state.Lists["Sitout"].members) do
+	for pos, name in self.Sitout:GetIterator() do
 		-- Only confirmed people who are in raid deserve online karma. :-)
 --[[		if not self:IsPlayerInRaid(name) and
 		   ( Guild:IsMemberOnline(name) or
@@ -1775,13 +1228,15 @@ if DBM then
 
 
 	DBM.EndCombat = function (self, mod, wipe)
-		if ZebRaidState.KarmaDB then
+		if self.state:GetKarmaDb() then
 			local difficulty = GetInstanceDifficulty()
-			if (difficulty == 2 or difficulty == 4) and BossKarmaLookup[mod.id] and not wipe then
+			if (difficulty == 2 or difficulty == 4) and
+				BossKarmaLookup[mod.id] and not wipe
+			then
 				ZebRaid:SetBossAndKarma(mod.id, BossKarmaLookup[mod.id])
 			end
 		end
 
-		DBMold(self, mod,wipe)
+		DBMold(self, mod, wipe)
 	end
 end

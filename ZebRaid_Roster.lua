@@ -1,14 +1,14 @@
 local initialized = false
 
 function ZebRaid:RosterInit()
-	if not initialized then	
+	if not initialized then
 		if not self.unitIds then self.unitIds = {} end
 		self:RegisterEvent("RAID_ROSTER_UPDATE", "MembersChanged")
 		self:RegisterEvent("PARTY_MEMBERS_CHANGED", "MembersChanged")
 
 		-- Assume there was a change, and record the current status
 		self:MembersChanged()
-		
+
 		initialized = true
 	end
 end
@@ -25,6 +25,10 @@ function ZebRaid:IsPlayerInRaid(player)
    if self.unitIds[player] then return true
    else return false
    end
+end
+
+function ZebRaid:GetRosterIterator()
+	return pairs(self.unitIds)
 end
 
 function ZebRaid:MembersChanged()

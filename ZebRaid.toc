@@ -10,10 +10,13 @@ embeds.xml
 
 ZebRaid-enUS.lua
 ZebRaid.lua
-ZebRaid_Lists.lua
 ZebRaid_Util.lua
 ZebRaid_Comms.lua
 ZebRaid_Roster.lua
 ZebRaid_Tracker.lua
+ZebRaid_List.lua
+ZebRaid_State.lua
+ZebRaid_ButtonFactory.lua
+ZebRaid_PlayerData.lua
 ZebRaid.xml
 signups.lua
