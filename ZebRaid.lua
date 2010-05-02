@@ -78,7 +78,7 @@ function ZebRaid:OnInitialize()
 	self:SetDebugging(false)
 
 	--
-	-- Set up the Dialog Labels {{{
+	-- Set up the Dialog Labels
 	--
 	for i=1, 30 do
 		getglobal("ZebRaidDialogPanelSignedUpSlot"..i.."Label"):SetText("---")
@@ -325,7 +325,7 @@ function ZebRaid:PlayerOnDragStop(frame)
 	-- originated from.
 	local list
 	if selectedList then
-		list = selectedList.listObj
+		list = getglobal("ZebRaidDialogPanel" .. selectedList).listObj
 	else
 		list = frame.inList
 	end
@@ -333,40 +333,51 @@ function ZebRaid:PlayerOnDragStop(frame)
 	-- Not signed up or unsigned => Cannot go to SignedUp, Unsure, or Penalty
 	-- Allow Sitout for people who forgot to sign.
 	local signStat = self.state:GetSignupStatus(frame.player)
-	if signStat == "unsigned" or signStat == "unknown" then
-		if ( selectedList == "Penalty" or
-			 selectedList == "SignedUp" or
-			 selectedList == "Unsure")
+
+	if signStat == self.state.signup_const.unsigned or
+		signStat == self.state.signup_const.unknown
+	then
+		if ( list == self.Penalty or
+			 list == self.SignedUp or
+			 list == self.Unsure)
 		then
 			list = frame.inList
 		end
 	else
 		-- Unsure => Cannot go to Penalty
-		if selectedList == "Penalty" and signStat == "unsure" then
+		if list == self.Penalty and
+			signStat == self.state.signup_const.unsure
+		then
 			list = frame.inList
 		end
 
 		-- SignedUp or Unsure cannot go back to guild
-		if signStat ~= "unknown" and selectedList == "GuildList" then
+		if signStat ~= self.state.signup_const.unknown and
+			list == self.GuildList
+		then
 			list = frame.inList
 		end
 
 		-- SignedUp and Unsure cannot go each other
 
-		if  ( signStat == "signed" and selectedList == "Unsure" ) or
-			( signStat == "unsure" and selectedList == "SignedUp" )
+		if  ( signStat == self.state.signup_const.signed and
+			  list == self.Unsure ) or
+			( signStat == self.state.signup_const.unsure and
+			  list == self.SignedUp )
 		then
 			list = frame.inList
 		end
 	end
 
-	-- FIXME: List handling will be modified
+	-- If we've moved the player, set up his/her new assignment
 	if list ~= frame.inList then
-		self.state:SetAssignment(button.player, list:GetAssignment())
+		self.state:SetAssignment(frame.player, list:GetAssignment())
 	end
 
 	DraggingPlayer = nil
 
+	-- We need to call this even if no list transition occured. The button needs
+	-- to go back to its original place.
 	self:ShowListMembers()
 end
 
@@ -387,26 +398,26 @@ end
 function ZebRaid:ToggleAssignment(name)
 	local assignment = self.state:GetAssignment(name)
 	local signup = self.state:GetSignupStatus(name)
-	local newassignment = "unassigned"
+	local newassignment = self.state.assignment_const.unassigned
 
-	if assignment == "unassigned" then
-		if signup == "signed" then
-			newassignment = "confirmed"
-		elseif signup == "unsure" then
+	if assignment == self.state.assignment_const.unassigned then
+		if signup == self.state.signup_const.signed then
+			newassignment = self.state.assignment_const.confirmed
+		elseif signup == self.state.signup_const.unsure then
 			if Guild:IsMemberOnline(name) then
-				newassignment = "confirmed"
+				newassignment = self.state.assignment_const.confirmed
 			else
-				newassignment = "reserved"
+				newassignment = self.state.assignment_const.reserved
 			end
 		else -- Guild list: only shows online people, so I must want to confirm them
-			newassignment = "confirmed"
+			newassignment = self.state.assignment_const.confirmed
 		end
-	elseif assignment == "reserved" or
-		assignment == "confirmed" or
-		assignment == "penalty" or
-		assignment == "sitout"
+	elseif assignment == self.state.assignment_const.reserved or
+		assignment == self.state.assignment_const.confirmed or
+		assignment == self.state.assignment_const.penalty or
+		assignment == self.state.assignment_const.sitout
 	then
-		newassignment = "unassigned"
+		newassignment = self.state.assignment_const.unassigned
 	end
 
 	-- TODO: Want to implement this?
@@ -430,8 +441,8 @@ function ZebRaid:MemberConnected(name)
 
 	if not self.state:GetKarmaDb() then return end
 
-	if self.state:GetAssignment(name) == "unknown" then
-		self.state:SetAssignment(name, "unassigned")
+	if self.state:GetAssignment(name) == self.state.assignment_const.unknown then
+		self.state:SetAssignment(name, self.state.assignment_const.unassigned)
 	end
 
 	-- FIXME: This is really overkill. We should have a button object, and a way
@@ -451,8 +462,8 @@ function ZebRaid:MemberDisconnected(name)
 
 	if not self.state:GetKarmaDb() then return end
 
-	if self.state:GetAssignment(name) == "unassigned" and
-		self.state:GetSignupStatus(name) == "unknown"
+	if self.state:GetAssignment(name) == self.state.assignment_const.unassigned and
+		self.state:GetSignupStatus(name) == self.state.signup_const.unknown
 	then
 		self.state:RemoveAssignment(name)
 	end
@@ -515,7 +526,7 @@ function ZebRaid:AutoConfirm()
 	-- Move all unassigned people who are signed up to confirmed.
 	for i, name in self.SignedUp:GetIterator() do
 		if Guild:IsMemberOnline(name) then
-			self.state:SetAssignment(name, "confirmed")
+			self.state:SetAssignment(name, self.state.assignment_const.confirmed)
 		end
 	end
 
@@ -583,12 +594,80 @@ function ZebRaid:GiveKarma()
 	end
 end
 
+-- return true if a>b, false otherwise
+-- Compares dates of format MM/DD/YY
+local function isDateGreater(a, b)
+	-- Convert from MM/DD/YY to YY/MM/DD for all dates
+	a = a:gsub("^(.*)/([^/]*)$", "%2/%1")
+	b = b:gsub("^(.*)/([^/]*)$", "%2/%1")
+	return a > b
+end
+
+-- helper function to sort the list according to class, sitout and penalty
+function cmp_sort_for_sitout(name1, name2)
+	local role1, role2
+	role1 = ZebRaid.state.players:GetRole(name1)
+	role2 = ZebRaid.state.players:GetRole(name2)
+
+	-- If the roles are different, sort according to role
+	if role1 ~= role2 then
+		return role1 < role2
+	end
+
+	-- Otherwise, do the whole shebang:
+	-- Person with penalty > person witout penalty
+	-- both have penalty => sort by penalty date (earlier > later)
+	-- both at same date penalty => apply sitout comparisons
+	-- earlier sitout > later sitout
+	-- equal sitout date => sitout count
+	-- just give up and return 0
+	local sitoutCount1 = ZebRaid.state.players:GetSitoutCount(name1)
+	local sitoutCount2 = ZebRaid.state.players:GetSitoutCount(name2)
+	local lastSitout1 = ZebRaid.state.players:GetLastSitoutDate(name1)
+	local lastSitout2 = ZebRaid.state.players:GetLastSitoutDate(name2)
+	local lastPenalty1 = ZebRaid.state.players:GetLastPenaltyDate(name1)
+	local lastPenalty2 = ZebRaid.state.players:GetLastPenaltyDate(name2)
+	local hasPenalty1 = isDateGreater(lastPenalty1, lastSitout1)
+	local hasPenalty2 = isDateGreater(lastPenalty2, lastSitout2)
+
+	local rv
+
+	-- TODO: I am sure there is a more elegant way of doing this. I am not sure
+	-- I can do it. :)
+	if ( hasPenalty1 and not hasPenalty2 ) then
+		rv = true
+	elseif ( not hasPenalty1 and hasPenalty2 ) then
+		rv = false
+	elseif (hasPenalty1 and hasPenalty2) then
+		if isDateGreater(lastPenalty1, lastPenalty2) then
+			rv = false
+		elseif isDateGreater(lastPenalty2, lastPenalty1) then
+			rv = true
+		else
+			rv = nil -- Check sitouts
+		end
+	end
+
+	if rv == nil then
+		if isDateGreater(lastSitout1, lastSitout2) then
+			rv = false
+		elseif isDateGreater(lastSitout2, lastSitout1) then
+			rv = true
+		else
+			rv = sitoutCount1 < sitoutCount2 and true or
+				( sitoutCount2 < sitoutCount1 and false or name1 < name2)
+		end
+	end
+
+	return rv
+end
+
 function ZebRaid:InitializeLists()
 	local and_ = function (...)
 		local funcs={...}
 
 		return function(name)
-			local res
+			local res = true
 			for i, f in ipairs(funcs) do
 				res = res and f(name)
 				if not res then break end
@@ -599,77 +678,85 @@ function ZebRaid:InitializeLists()
 
 	local filter_by_signup = function(status)
 		return function(name)
-			return self:GetSignupStatus(name) == status
+			return self.state:GetSignupStatus(name) == status
 			   end
 	end
 
 	local filter_by_assignment = function(assignment)
 		return function(name)
-			return self.state:GetAssignment(name) == status
+			return self.state:GetAssignment(name) == assignment
 			   end
 	end
 
 	local is_online = function(name)
-		return Guild:IsPlayerOnline(name)
+		return Guild:IsMemberOnline(name)
 	end
 
 	if not self.GuildList then
 		self.GuildList = self:NewList("GuildList",
 									  getglobal("ZebRaidDialogPanelGuildList"),
-									  "unassigned")
-		self.GuildList:SetFilterFunc(and_(filter_by_signup("unknown"),
-										  filter_by_assignment("unassigned"),
-										  is_online))
+									  self.state.assignment_const.unassigned)
+		self.GuildList:SetFilterFunc(
+			and_( filter_by_signup(self.state.signup_const.unknown),
+			      filter_by_assignment(self.state.assignment_const.unassigned),
+				  is_online))
 		self.GuildList:Update()
 	end
 
 	if not self.SignedUp then
 		self.SignedUp = self:NewList("SignedUp",
 									 getglobal("ZebRaidDialogPanelSignedUp"),
-									 "unassigned")
-		self.SignedUp:SetFilterFunc(and_(filter_by_signup("signed"),
-										 filter_by_assignment("unassigned")))
+									 self.state.assignment_const.unassigned)
+		self.SignedUp:SetFilterFunc(
+			and_( filter_by_signup(self.state.signup_const.signed),
+			      filter_by_assignment(self.state.assignment_const.unassigned)))
 		self.SignedUp:Update()
 	end
 
 	if not self.Unsure then
 		self.Unsure = self:NewList("Unsure",
 								   getglobal("ZebRaidDialogPanelUnsure"),
-								   "unassigned")
-		self.Unsure:SetFilterFunc(and_(filter_by_signup("unsure"),
-									   filter_by_assignment("unassigned")))
+								   self.state.assignment_const.unassigned)
+		self.Unsure:SetFilterFunc(
+			and_( filter_by_signup(self.state.signup_const.unsure),
+  			      filter_by_assignment(self.state.assignment_const.unassigned)))
 		self.Unsure:Update()
 	end
 
 	if not self.Confirmed then
 		self.Confirmed = self:NewList("Confirmed",
 									  getglobal("ZebRaidDialogPanelConfirmed"),
-									  "confirmed")
-		self.Confirmed:SetFilterFunc(filter_by_assignment("confirmed"))
+									  self.state.assignment_const.confirmed)
+		self.Confirmed:SetFilterFunc(
+			filter_by_assignment(self.state.assignment_const.confirmed))
+		self.Confirmed:SetSortFunc(cmp_sort_for_sitout)
 		self.Confirmed:Update()
 	end
 
 	if not self.Reserved then
 		self.Reserved = self:NewList("Reserved",
 									 getglobal("ZebRaidDialogPanelReserved"),
-									 "reserved")
-		self.Confirmed:SetFilterFunc(filter_by_assignment("reserved"))
+									 self.state.assignment_const.reserved)
+		self.Reserved:SetFilterFunc(
+			filter_by_assignment(self.state.assignment_const.reserved))
 		self.Reserved:Update()
 	end
 
 	if not self.Penalty then
 		self.Penalty = self:NewList("Penalty",
 									getglobal("ZebRaidDialogPanelPenalty"),
-								    "penalty")
-		self.Penalty:SetFilterFunc(filter_by_assignment("penalty"))
+								    self.state.assignment_const.penalty)
+		self.Penalty:SetFilterFunc(
+			filter_by_assignment(self.state.assignment_const.penalty))
 		self.Penalty:Update()
 	end
 
 	if not self.Sitout then
 		self.Sitout = self:NewList("Sitout",
 								   getglobal("ZebRaidDialogPanelSitout"),
-								   "sitout")
-		self.Sitout:SetFilterFunc(filter_by_assignment("sitout"))
+								   self.state.assignment_const.sitout)
+		self.Sitout:SetFilterFunc(
+			filter_by_assignment(self.state.assignment_const.sitout))
 		self.Sitout:Update()
 	end
 
@@ -775,85 +862,6 @@ end
 ----------------------
 -- Helper Functions --
 ----------------------
-
--- Find a list position in the list members where a new player should be
--- inserted according to its class. The list must already be sorted by class.
-function ZebRaid:FindClassInsertPos(list, name)
-	local playerClass = Guild:GetClass(name)
-	local foundClassStart = nil
-	local insertPos = nil
-	for pos, val in pairs(list.members) do
-		if Guild:GetClass(val) == playerClass then
-			foundClassStart = true
-		end
-		if foundClassStart and Guild:GetClass(val) ~= playerClass then
-			insertPos = pos
-			break
-		end
-	end
-
-	return insertPos
-end
-
--- Obtain the sitout position of a player from the saved state
-function ZebRaid:GetPlayerSitoutPos(name)
-	local stat = ZebRaidPlayerData[name]
-	local sitoutPos = 0
-	if stat then
-		sitoutPos = stat.sitoutPos
-	end
-	return sitoutPos
-end
-
--- return true if a>b, false otherwise
--- Compares dates of format MM/DD/YY
-local function isDateGreater(a, b)
-	-- Convert from MM/DD/YY to YY/MM/DD for all dates
-	a = a:gsub("^(.*)/(.*)$", "%2/%1")
-	b = b:gsub("^(.*)/(.*)$", "%2/%1")
-	return a > b
-end
-
--- return true if a<b, false otherwise
--- Compares dates of format MM/DD/YY
-local function isDateLesser(a, b)
-	-- Convert from MM/DD/YY to YY/MM/DD for all dates
-	a = a:gsub("^(.*)/(.*)$", "%2/%1")
-	b = b:gsub("^(.*)/(.*)$", "%2/%1")
-	return a < b
-end
-
--- Find a list position in the list members where a new player should be inserted
--- according to its sitoutPos value. The list must already be sorted by the sitoutInsertPos
-function ZebRaid:FindSitoutInsertPos(list, name)
-	--local playerSitoutPos = self:GetPlayerSitoutPos(name)
-	local playerSitoutCount = self.state.players:GetSitoutCount(name)
-	local playerLastSitoutDate = self.state.players:GetLastSitoutDate(name)
-	local playerLastPenaltyDate = self.state.players:GetLastPenaltyDate(name)
-	local playerHasPenalty = isDateGreater(playerLastPenaltyDate,
-										   playerLastSitoutDate)
-	local playerRole = RoleLetters[self.state.players:GetRole(name)] or "X"
-	local insertPos = nil
-	local curLastSitoutDate, curRole
-	local curLastPenaltyDate, curHasPenalty
-	for pos, val in ipairs(list.members) do
-		curSitoutCount = self.state.players:GetSitoutCount(val)
-		curLastSitoutDate = self.state.players:GetLastSitoutDate(val)
-		curLastPenaltyDate = self.state.players:GetLastPenaltyDate(val)
-		curHasPenalty = isDateGreater(curLastPenaltyDate, curLastSitoutDate)
-		curRole = RoleLetters[self.state.players:GetRole(val)] or "X"
-		if playerRole < curRole or
-			(playerRole == curRole and playerHasPenalty) or
-			(playerRole == curRole and isDateLesser(playerLastSitoutDate, curLastSitoutDate) and not curHasPenalty) or
-			(playerRole == curRole and playerLastSitoutDate == curLastSitoutDate and playerSitoutCount < curSitoutCount and not curHasPenalty)
-		then
-			insertPos = pos
-			break
-		end
-	end
-
-	return insertPos
-end
 
 function ZebRaid:GetRaidDate()
 	local raidId = self.state:GetRaidId()
@@ -1129,11 +1137,11 @@ function ZebRaid:RosterUpdated()
 		-- FIXME: Make a roster object to fit in with the rest of the code
 		for name in self:GetRosterIterator() do
 			assignment = self.state:GetAssignment(name)
-			if assignment == "unassigned" or
-				assignment == "unknown" or
-				assignment == "reserved"
+			if assignment == self.state.assignment_const.unassigned or
+				assignment == self.state.assignment_const.unknown or
+				assignment == self.state.assignment_const.reserved
 			then
-				self.state:SetAssignment("confirmed")
+				self.state:SetAssignment(name, self.state.assignment_const.confirmed)
 			end
 		end
 	end

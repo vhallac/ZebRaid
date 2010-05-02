@@ -6,6 +6,21 @@ local ZebRaid = addonTable.ZebRaid
 -- The function prototypes will go in here
 local State_Template = {
     UIMasters = {},          -- Broken feature: List of UI master per DB
+
+    signup_const = {
+        signed = "signed",      -- ready and willing
+        unsigned = "unsigned",  -- won't make it
+        unsure = "unsure",      -- May make it to invite time
+        unknown = "unknown"     -- didn't use the planner
+    },
+
+    assignment_const = {
+        unassigned = "unassigned", -- No raid status yet
+        confirmed = "confirmed",   -- Will raid
+        reserved = "reserved",     -- Spot reserved for member
+        penalty = "penalty",       -- Received a penalty (for not showing up)
+        sitout = "sitout",         -- Will be sitting out
+    }
 }
 
 -- Meta table to allow all object to access the "static" variables.
@@ -51,7 +66,7 @@ function obj:Construct()
         self.active.Assignments = {}
 
         for name in pairs(self.RegisteredUsers) do
-            self:SetAssignment(name, "unassigned")
+            self:SetAssignment(name, self.assignment_const.unassigned)
         end
     end
 --]]
@@ -61,7 +76,7 @@ function obj:Construct()
 		if Guild:GetLevel(name) == 80 and
             not self:GetAssignment(name)
         then
-            self:SetAssignment(name, "unassigned")
+            self:SetAssignment(name, self.assignment_const.unassigned)
         end
     end
 end
@@ -84,10 +99,18 @@ function obj:Cleanup()
 end
 
 function obj:SetKarmaDb(db)
+    -- Take away penalty and sitouts from people
+    if self.active and self.active.Assignments then
+        for name, assignment in pairs(self.active.Assignments) do
+            self:AdjustSitoutPenalty(name, assignment, nil)
+        end
+    end
+
     self.data.KarmaDB = db
     if not self.data[db] then
         self.data[db] = {}
     end
+
     -- Need to set in in the shared state
     State_Template.active = self.data[db]
 
@@ -95,14 +118,15 @@ function obj:SetKarmaDb(db)
         self:ParseLocalRaidData()
     end
 
-    -- If the active state has no assignments, fill it in.
-    if not self.active.Assignments then
-        self.active.Assignments = {}
-
-        for name in pairs(self.active.RegisteredUsers) do
-            self:SetAssignment(name, "unassigned")
+    -- Now, give new penalty and sitouts to people
+    if self.active and self.active.Assignments then
+        for name, assignment in pairs(self.active.Assignments) do
+            self:AdjustSitoutPenalty(name, nil, assignment)
         end
     end
+
+    -- Just assign the online people. The database is probably not up-to-date
+    self:AssignOnline()
 end
 
 function obj:GetKarmaDb()
@@ -123,7 +147,8 @@ function obj:AddRegisteredUser(name, status, role, note)
     if note == "" then note = nil end
 
     if Guild:HasMember(name) then
-        -- If we didn't gkick the user since sign-up, add him to the RegisteredUsers table
+        -- If we didn't gkick the user since sign-up, add him to the
+        -- RegisteredUsers table
         self.active.RegisteredUsers[name] = {
             status = status,
             role = role, -- Fixme: probably won't want this. Use the player data
@@ -137,9 +162,10 @@ end
 
 function obj:GetSignupStatus(name)
     if not self.active then return end
+
     return ( self.active.RegisteredUsers[name] and
              self.active.RegisteredUsers[name].status or
-             "unknown" )
+             self.signup_const.unknown )
 end
 
 function obj:GetSignupNote(name)
@@ -149,13 +175,42 @@ function obj:GetSignupNote(name)
 end
 
 function obj:GetAssignment(name)
-    if not ( self.active and self.active.Assignments )  then return nil end
-    return self.active.Assignments[name] or "unassigned"
+    if not ( self.active ) then  return end
+
+    -- If the active state has no assignments, create the table
+    if not self.active.Assignments then
+        self.active.Assignments = {}
+    end
+
+    -- If we have an empty assignment table, fill it in.
+    if next(self.active.Assignments) == nil then
+        self:ResetAssignments()
+    end
+
+    return self.active.Assignments[name]
 end
 
 function obj:SetAssignment(name, assignment)
     if not self.active then return end
+
+    local oldval = self.active.Assignments[name]
     self.active.Assignments[name] = assignment
+
+    self:AdjustSitoutPenalty(name, oldval, assignment)
+end
+
+function obj:AdjustSitoutPenalty(name, oldAssignment, newAssignment)
+    if oldAssignment == self.assignment_const.sitout then
+        self.players:RemoveSitout(name)
+    elseif oldAssignment == self.assignment_const.penalty then
+        self.players:RemovePenalty(name)
+    end
+
+    if newAssignment == self.assignment_const.sitout then
+        self.players:AddSitout(name)
+    elseif newAssignment == self.assignment_const.penalty then
+        self.players:AddPenalty(name)
+    end
 end
 
 function obj:RemoveAssignment(name)
@@ -193,6 +248,22 @@ function obj:ResetAssignments()
     for i in pairs(self.active.Assignments) do
         self.active.Assignments[i] = nil
     end
+
+    for name in pairs(self.active.RegisteredUsers) do
+        self:SetAssignment(name, self.assignment_const.unassigned)
+    end
+
+    self:AssignOnline()
+end
+
+function obj:AssignOnline()
+    for name in Guild:GetIterator("NAME", false) do
+		if Guild:GetLevel(name) == 80 and
+            not self:GetAssignment(name) -- This will not cause recursion
+        then
+            self:SetAssignment(name, self.assignment_const.unassigned)
+        end
+    end
 end
 
 -- TODO: Need a GetPlayerRole here?
@@ -219,7 +290,7 @@ function obj:GetTooltipText(name)
 	end
 
     local status = self:GetSignupStatus(name)
-    if status == "unsigned" then
+    if status == self.signup_const.unsigned then
         text = text ..
             "|cffff0000" .. L["PLAYER_UNSIGNED"] .. "|r\n\n"
     end

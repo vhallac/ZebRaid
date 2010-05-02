@@ -135,7 +135,7 @@ function obj:SetButtonLabel(button, name)
 
 	-- Put a x before the name if the user has unsigned from the raid
 	local prefix = ""
-    if self.state:GetSignupStatus() == "unsigned" then
+    if self.state:GetSignupStatus() == self.state.signup_const.unsigned then
         prefix = prefix .. "x"
     end
 
