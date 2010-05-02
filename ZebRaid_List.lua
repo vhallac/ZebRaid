@@ -187,7 +187,6 @@ function obj:SetButtonPos(button, pos)
         button:SetHitRectInsets(0, 0, 0, 0)
         button:SetFrameLevel(slot:GetFrameLevel() + 20)
         button:RegisterForDrag("LeftButton")
-        button.inList = list
         button:Show()
         return true
     else
