@@ -31,7 +31,6 @@ function obj:construct()
 end
 
 function obj:Get(name)
-    DEFAULT_CHAT_FRAME:AddMessage("name="..(name or "nil"))
     if not self.data[name] then
         self.data[name] = {}
     end
@@ -58,7 +57,6 @@ function obj:SetRole(name, role)
 end
 
 function obj:GetRole(name)
-    DEFAULT_CHAT_FRAME:AddMessage("GetRole: "..(name or "nil"))
     local data = self:Get(name)
     local role = data.role or "unknown"
     return RoleOverrides[role] or role

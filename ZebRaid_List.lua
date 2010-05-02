@@ -60,7 +60,6 @@ function obj:Update()
 
     local makebuttons = true
     for i, name in self.state:GetPlayerIterator(self.filterfunc, self.sortfunc) do
-        DEFAULT_CHAT_FRAME:AddMessage("i="..i.."name="..(name or "nil"))
         -- TODO: It should be possible to do incremental updates here
         -- WTB more side-effect programming. Fix it!
         if makebuttons and not self:InsertNewButton(name, i) then
