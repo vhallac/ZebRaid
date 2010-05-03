@@ -4,17 +4,14 @@ local addonName, addonTable = ...
 local ZebRaid = addonTable.ZebRaid
 
 -- The function prototypes will go in here
-local List_Template = {
+local ListClass = {
 }
 
 -- Define a shorter name for the following code
-
-local obj = List_Template
+local obj = ListClass
 
 function ZebRaid:NewList(name, visual, assignment)
-    list = setmetatable({}, {__index = List_Template })
-    list:Construct(name, visual, assignment)
-    return list
+    return ZebRaid:Construct(ListClass, name, visual, assignment)
 end
 
 function obj:Construct(name, visual, assignment)

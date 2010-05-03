@@ -4,7 +4,7 @@ local addonName, addonTable = ...
 local ZebRaid = addonTable.ZebRaid
 
 -- The function prototypes will go in here
-local State_Template = {
+local StateClass = {
     UIMasters = {},          -- Broken feature: List of UI master per DB
 
     signup_const = {
@@ -23,37 +23,27 @@ local State_Template = {
     }
 }
 
--- Meta table to allow all object to access the "static" variables.
-local meta = {__index = State_Template,
-              __newindex = function(tbl, key, val)
-                  if State_Template[key] then State_Template[key] = val
-                  else rawset(tbl, key, val) end
-              end}
-
 -- Define a shorter name for the following code
-
-local obj = State_Template
+local obj = StateClass
 
 function ZebRaid:NewState()
     -- Get an accessor to player database shared by all instances
-    if not State_Template.players then
-        State_Template.players = ZebRaid:NewPlayerData()
+    if not StateClass.players then
+        StateClass.players = ZebRaid:NewPlayerData()
     end
 
-    state = setmetatable({}, meta)
-    state:Construct()
-    return state
+    return ZebRaid:Construct(StateClass)
 end
 
 function ZebRaid:SetStateBackend(state)
-    State_Template.data = state
+    StateClass.data = state
 end
 
 function obj:Construct()
     -- If we have a karma DB selected, choose the active state
     if self.data.KarmaDB then
         -- Need to set in in the shared state
-        State_Template.active = self.data[db]
+        StateClass.active = self.data[db]
     end
 
     if self.active and not self.active.RegisteredUsers then
@@ -112,7 +102,7 @@ function obj:SetKarmaDb(db)
     end
 
     -- Need to set in in the shared state
-    State_Template.active = self.data[db]
+    StateClass.active = self.data[db]
 
     if not self.active.RegisteredUsers then
         self:ParseLocalRaidData()

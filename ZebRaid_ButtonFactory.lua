@@ -2,26 +2,16 @@ local addonName, addonTable = ...
 local ZebRaid = addonTable.ZebRaid
 
 -- The function prototypes will go in here
-local Factory_Template = {
+local ButtonFactoryClass = {
     buttons = {},
     allocCount = 0
 }
 
--- Meta table to allow all object to access the "static" variables.
-local meta = {__index = Factory_Template,
-              __newindex = function(tbl, key, val)
-                  if Factory_Template[key] then Factory_Template[key] = val
-                  else rawset(tbl, key, val) end
-              end}
-
 -- Define a shorter name for the following code
-
-local obj = Factory_Template
+local obj = ButtonFactoryClass
 
 function ZebRaid:NewButtonFactory()
-    factory = setmetatable({}, meta)
-    factory:Construct()
-    return factory
+    return ZebRaid:Construct(ButtonFactoryClass)
 end
 
 function obj:Construct()

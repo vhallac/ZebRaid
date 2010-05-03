@@ -3,30 +3,21 @@ local addonName, addonTable = ...
 local ZebRaid = addonTable.ZebRaid
 
 -- The function prototypes will go in here
-local PlayerData_Template = {
+local PlayerDataClass = {
 }
 
--- Meta table to allow all object to access the "static" variables.
-local meta = {__index = PlayerData_Template,
-              __newindex = function(tbl, key, val)
-                  if PlayerData_Template[key] then PlayerData_Template[key] = val
-                  else rawset(tbl, key, val) end
-              end}
-
 -- Define a shorter name for the following code
-local obj = PlayerData_Template
+local obj = PlayerDataClass
 
 function ZebRaid:NewPlayerData()
-    local data = setmetatable({}, meta)
-    data:construct()
-    return data
+    return ZebRaid:Construct(PlayerDataClass)
 end
 
 function ZebRaid:SetPlayerDataBackend(data)
-    PlayerData_Template.data = data
+    PlayerDataClass.data = data
 end
 
-function obj:construct()
+function obj:Construct()
     -- Nothing to see here. Move on.
 end
 

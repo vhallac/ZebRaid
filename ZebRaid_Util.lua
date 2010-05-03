@@ -18,4 +18,20 @@ function ZebRaid:GetClassColor(name)
 	else
 		return 0.8, 0.8, 0.8
 	end
-end 
+end
+
+-- Poor man's objects. Supports object construction and static members, and not
+-- much else.
+function ZebRaid:Construct(class, ...)
+    local instance = setmetatable({},
+                                  {
+                                      __index = class,
+                                      __newindex = function(tbl, key, val)
+                                          if class[key] then class[key] = val
+                                          else rawset(tbl, key, val) end
+                                      end})
+    if instance then
+        instance:Construct(...)
+    end
+    return instance
+end
