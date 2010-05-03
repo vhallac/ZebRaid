@@ -626,23 +626,24 @@ function cmp_sort_for_sitout(name1, name2)
 	-- kind. I doubt that it will eliminate the second kind, because scores
 	-- depend on the other item compared, but I am hoping that the rules are
 	-- sensible enough that it will not happen.
-	-- The tests are sorted by importance from top to bottom. Every test shifts
-	-- the score left, and adds a new value to the least significant bit.
+	-- Each test has a different weight in score, prioritizing that test above
+	-- others. The downside of the method is the renumbering required every time
+	-- a new test is added to the middle.
 	local score = { 0, 0 }
 
 	for i = 1, 2 do
 		if hasPenalty[i] then
-			score[i] = 2*score[i] + 1
+			score[i] = score[i] + 8
 			if hasPenalty[2-i+1] and
 				isDateGreater(lastPenalty[2-i+1], lastPenalty[i]) then
-				score[i] = 2*score[i] + 1
+				score[i] = score[i] + 4
 			end
 		end
 		if isDateGreater(lastSitout[2-i+1], lastSitout[i]) then
-			score[i] = 2*score[i] + 1
+			score[i] = score[i] + 2
 		end
 		if sitoutCount[i] < sitoutCount[2-i+1] then
-			score[i] = 2*score[i] + 1
+			score[i] = score[i] + 1
 		end
 	end
 
