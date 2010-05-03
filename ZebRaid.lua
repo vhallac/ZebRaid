@@ -611,45 +611,42 @@ function cmp_sort_for_sitout(name1, name2)
 	-- earlier sitout > later sitout
 	-- equal sitout date => sitout count
 	-- just give up and return 0
-	local sitoutCount1 = ZebRaid.state.players:GetSitoutCount(name1)
-	local sitoutCount2 = ZebRaid.state.players:GetSitoutCount(name2)
-	local lastSitout1 = ZebRaid.state.players:GetLastSitoutDate(name1)
-	local lastSitout2 = ZebRaid.state.players:GetLastSitoutDate(name2)
-	local lastPenalty1 = ZebRaid.state.players:GetLastPenaltyDate(name1)
-	local lastPenalty2 = ZebRaid.state.players:GetLastPenaltyDate(name2)
-	local hasPenalty1 = isDateGreater(lastPenalty1, lastSitout1)
-	local hasPenalty2 = isDateGreater(lastPenalty2, lastSitout2)
+	local sitoutCount = { ZebRaid.state.players:GetSitoutCount(name1),
+						  ZebRaid.state.players:GetSitoutCount(name2) }
+	local lastSitout = { ZebRaid.state.players:GetLastSitoutDate(name1),
+						 ZebRaid.state.players:GetLastSitoutDate(name2) }
+	local lastPenalty = { ZebRaid.state.players:GetLastPenaltyDate(name1),
+						  ZebRaid.state.players:GetLastPenaltyDate(name2) }
+	local hasPenalty = { isDateGreater(lastPenalty[1], lastSitout[1]),
+						 isDateGreater(lastPenalty[2], lastSitout[2]) }
 
-	local rv
+	-- This looks weird, but complicated logic inside sort tends to break it
+	-- when you return true for both a<b and b<a. Or even worse, a<b, b<c, and
+	-- c<a. Assigning a score per person and comparing eliminates the first
+	-- kind. I doubt that it will eliminate the second kind, because scores
+	-- depend on the other item compared, but I am hoping that the rules are
+	-- sensible enough that it will not happen.
+	-- The tests are sorted by importance from top to bottom. Every test shifts
+	-- the score left, and adds a new value to the least significant bit.
+	local score = { 0, 0 }
 
-	-- TODO: I am sure there is a more elegant way of doing this. I am not sure
-	-- I can do it. :)
-	if ( hasPenalty1 and not hasPenalty2 ) then
-		rv = true
-	elseif ( not hasPenalty1 and hasPenalty2 ) then
-		rv = false
-	elseif (hasPenalty1 and hasPenalty2) then
-		if isDateGreater(lastPenalty1, lastPenalty2) then
-			rv = false
-		elseif isDateGreater(lastPenalty2, lastPenalty1) then
-			rv = true
-		else
-			rv = nil -- Check sitouts
+	for i = 1, 2 do
+		if hasPenalty[i] then
+			score[i] = 2*score[i] + 1
+			if hasPenalty[2-i+1] and
+				isDateGreater(lastPenalty[2-i+1], lastPenalty[i]) then
+				score[i] = 2*score[i] + 1
+			end
+		end
+		if isDateGreater(lastSitout[2-i+1], lastSitout[i]) then
+			score[i] = 2*score[i] + 1
+		end
+		if sitoutCount[i] < sitoutCount[2-i+1] then
+			score[i] = 2*score[i] + 1
 		end
 	end
 
-	if rv == nil then
-		if isDateGreater(lastSitout1, lastSitout2) then
-			rv = false
-		elseif isDateGreater(lastSitout2, lastSitout1) then
-			rv = true
-		else
-			rv = sitoutCount1 < sitoutCount2 and true or
-				( sitoutCount2 < sitoutCount1 and false or name1 < name2)
-		end
-	end
-
-	return rv
+	return (score[1] == score[2]) and (name1 < name2) or (score[1] > score[2])
 end
 
 function ZebRaid:InitializeLists()
