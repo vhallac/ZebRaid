@@ -247,7 +247,7 @@ function ZebRaid:Start()
 	-- If there is an offline player in the Sitout list, ask their alts' tracker
 	-- to respond
 	for i, name in self.Sitout:GetIterator() do
-		local alts = self.state.players:GetAltList(name)
+		local alts = self.state.players:Get(name):GetAltList()
 		if not Guild:IsMemberOnline(name) and alts then
 			for alt in pairs(alts) do
 				self:Tracker_QueryPresence(alt)
@@ -595,9 +595,11 @@ end
 
 -- helper function to sort the list according to class, sitout and penalty
 function cmp_sort_for_sitout(name1, name2)
+	local p1 = ZebRaid.state.players:Get(name1)
+	local p2 = ZebRaid.state.players:Get(name2)
 	local role1, role2
-	role1 = ZebRaid.state.players:GetRole(name1)
-	role2 = ZebRaid.state.players:GetRole(name2)
+	role1 = p1:GetRole()
+	role2 = p2:GetRole()
 
 	-- If the roles are different, sort according to role
 	if role1 ~= role2 then
@@ -611,12 +613,12 @@ function cmp_sort_for_sitout(name1, name2)
 	-- earlier sitout > later sitout
 	-- equal sitout date => sitout count
 	-- just give up and return 0
-	local sitoutCount = { ZebRaid.state.players:GetSitoutCount(name1),
-						  ZebRaid.state.players:GetSitoutCount(name2) }
-	local lastSitout = { ZebRaid.state.players:GetLastSitoutDate(name1),
-						 ZebRaid.state.players:GetLastSitoutDate(name2) }
-	local lastPenalty = { ZebRaid.state.players:GetLastPenaltyDate(name1),
-						  ZebRaid.state.players:GetLastPenaltyDate(name2) }
+	local sitoutCount = { p1:GetSitoutCount(),
+						  p2:GetSitoutCount() }
+	local lastSitout = { p1:GetLastSitoutDate(),
+						 p2:GetLastSitoutDate() }
+	local lastPenalty = { p1:GetLastPenaltyDate(),
+						  p2:GetLastPenaltyDate() }
 	local hasPenalty = { isDateGreater(lastPenalty[1], lastSitout[1]),
 						 isDateGreater(lastPenalty[2], lastSitout[2]) }
 

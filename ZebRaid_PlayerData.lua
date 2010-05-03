@@ -25,7 +25,26 @@ function obj:Get(name)
     if not self.data[name] then
         self.data[name] = {}
     end
-    return self.data[name]
+    return self:NewPlayer(self, name, self.data[name])
+end
+
+-- Class that represents a player. It has a PlayerData backend for persistent
+-- state management.
+PlayerClass = {
+}
+
+function obj:NewPlayer(playerdata, name, record)
+    return ZebRaid:Construct(PlayerClass, playerdata, name, record)
+end
+
+function PlayerClass:Construct(playerdata, name, record)
+    self.playerData = playerdata
+    self.name = name
+    self.record = record
+end
+
+function PlayerClass:GetName()
+    return self.name
 end
 
 -- Overrides for new version. This is a backward compatibility problem
@@ -34,135 +53,133 @@ local RoleOverrides={
 	["healing"] = "healer"
 }
 
-function obj:SetRole(name, role)
-    local data = self:Get(name)
+function PlayerClass:SetRole(role)
     role = string.lower(role)
     -- Update the player role with the new one unless the role is
     -- unknown. If the player role is not recorded yet, just stick
     -- anything we have (including unknown) to it.
-    if ( not data.role or
+    if ( not self.record.role or
          role ~= "unknown" )
     then
-        data.role = RoleOverrides[role] or role
+        self.record.role = RoleOverrides[role] or role
     end
 end
 
-function obj:GetRole(name)
-    local data = self:Get(name)
-    local role = data.role or "unknown"
+function PlayerClass:GetRole()
+    local role = self.record.role or "unknown"
     return RoleOverrides[role] or role
 end
 
-function obj:GetSitoutCount(name)
-    return #self:GetSitoutDates(name)
+function PlayerClass:GetSitoutCount()
+    return #self:GetSitoutDates()
 end
 
-function obj:GetSitoutDates(name)
-    local data = self:Get(name)
-    if not data.sitoutDates then data.sitoutDates = {} end
-	return data.sitoutDates
+function PlayerClass:GetSitoutDates()
+    if not self.record.sitoutDates then self.record.sitoutDates = {} end
+	return self.record.sitoutDates
 end
 
-function obj:GetLastSitoutDate(name)
-	local dates = self:GetSitoutDates(name)
+function PlayerClass:GetLastSitoutDate()
+	local dates = self:GetSitoutDates()
 	return dates[#dates] or "01/01/09"
 end
 
-function obj:AddSitout(name)
+function PlayerClass:AddSitout()
 	local curDate = ZebRaid:GetRaidDate()
-	local lastSitout = self:GetLastSitoutDate(name)
+	local lastSitout = self:GetLastSitoutDate()
 	if curDate ~= lastSitout then
-		table.insert(self:GetSitoutDates(name), curDate)
+		table.insert(self:GetSitoutDates(), curDate)
 	end
 end
 
-function obj:RemoveSitout(name)
+function PlayerClass:RemoveSitout()
 	local curDate = ZebRaid:GetRaidDate()
-	local lastSitout = self:GetLastSitoutDate(name)
-    -- Edge case: cannot remove the sitout from someone after midnight
+	local lastSitout = self:GetLastSitoutDate()
 	if  lastSitout == curDate then
-        local dates = self:GetSitoutDates(name)
+        local dates = self:GetSitoutDates()
         table.remove(dates, #dates)
 	end
 end
 
-function obj:GetPenaltyCount(name)
-    return #self:GetPenaltyDates(name)
+function PlayerClass:GetPenaltyCount()
+    return #self:GetPenaltyDates()
 end
 
-function obj:GetPenaltyDates(name)
-    local data = self:Get(name)
-    if not data.penaltyDates then data.penaltyDates = {} end
-    return data.penaltyDates
+function PlayerClass:GetPenaltyDates()
+    if not self.record.penaltyDates then self.record.penaltyDates = {} end
+    return self.record.penaltyDates
 end
 
-function obj:GetLastPenaltyDate(name)
-	local dates = self:GetPenaltyDates(name)
+function PlayerClass:GetLastPenaltyDate()
+	local dates = self:GetPenaltyDates()
 	return dates[#dates] or "01/01/09"
 end
 
-function obj:AddPenalty(name)
+function PlayerClass:AddPenalty()
 	local curDate = ZebRaid:GetRaidDate()
-	local lastPenalty = self:GetLastPenaltyDate(name)
+	local lastPenalty = self:GetLastPenaltyDate()
 	if curDate ~= lastPenalty then
-		table.insert(self:GetPenaltyDates(name), curDate)
+		table.insert(self:GetPenaltyDates(), curDate)
 	end
 end
 
-function obj:RemovePenalty(name)
+function PlayerClass:RemovePenalty()
 	local curDate = ZebRaid:GetRaidDate()
-	local lastPenalty = self:GetLastPenaltyDate(name)
-    -- Edge case: cannot remove the sitout from someone after midnight
+	local lastPenalty = self:GetLastPenaltyDate()
 	if  lastPenalty == curDate then
-        local dates = self:GetPenaltyDates(name)
+        local dates = self:GetPenaltyDates()
         table.remove(dates, #dates)
 	end
 end
 
-function obj:GetSignedCount(name)
-    return #self:GetSignedDates(name)
+function PlayerClass:GetSignedCount()
+    return #self:GetSignedDates()
 end
 
-function obj:GetSignedDates(name)
-    local data = self:Get(name)
-    if not data.sitoutDates then data.sitoutDates = {} end
-	return data.sitoutDates
+function PlayerClass:GetSignedDates()
+    if not self.record.sitoutDates then self.record.sitoutDates = {} end
+	return self.record.sitoutDates
 end
 
-function obj:GetLastSignedDate(name)
-	local dates = self:GetSignedDates(name)
+function PlayerClass:GetLastSignedDate()
+	local dates = self:GetSignedDates()
 	return dates[#dates] or "01/01/09"
 end
 
-function obj:AddSigned(name)
+function PlayerClass:AddSigned()
 	local curDate = ZebRaid:GetRaidDate()
-	local lastSigned = self:GetLastSignedDate(name)
+	local lastSigned = self:GetLastSignedDate()
 	if curDate ~= lastSigned then
-		table.insert(self:GetSignedDates(name), curDate)
+		table.insert(self:GetSignedDates(), curDate)
 	end
 end
 
-function obj:RemoveSigned(name)
+function PlayerClass:RemoveSigned()
 	local curDate = ZebRaid:GetRaidDate()
-	local lastSigned = self:GetLastSignedDate(name)
-    -- Edge case: cannot remove the sitout from someone after midnight
+	local lastSigned = self:GetLastSignedDate()
 	if  lastSigned == curDate then
-        local dates = self:GetSignedDates(name)
+        local dates = self:GetSignedDates()
         table.remove(dates, #dates)
 	end
 end
 
-function obj:GetAlts(name)
-    local data = self:Get(name)
-    if data then return data.AltList end
+function PlayerClass:GetAlts()
+    return self.record.AltList
 end
 
-function obj:AddAlt(name, alt)
-    local data = self:Get(name)
-    if data then
-        if not data.AltList then
-            data.AltList = {}
-        end
-        data.AltList[alt] = true
-    end
+function PlayerClass:AddAlt(alt)
+    if not self.record.AltList then self.record.AltList = {} end
+    self.record.AltList[alt] = true
+end
+
+function PlayerClass:GetGuildRank()
+    return Guild:GetRank(self.name)
+end
+
+function PlayerClass:GetGuildNote()
+    return Guild:GetNote(self.name)
+end
+
+function PlayerClass:IsOnline()
+    return Guild:IsMemberOnline(self.name)
 end

@@ -146,7 +146,7 @@ function obj:AddRegisteredUser(name, status, role, note)
         }
 
         -- Update player database with the new role
-        self.players:SetRole(name, role)
+        self.players:Get(name):SetRole(role)
     end
 end
 
@@ -190,16 +190,18 @@ function obj:SetAssignment(name, assignment)
 end
 
 function obj:AdjustSitoutPenalty(name, oldAssignment, newAssignment)
+    local p = self.players:Get(name)
+
     if oldAssignment == self.assignment_const.sitout then
-        self.players:RemoveSitout(name)
+        p:RemoveSitout()
     elseif oldAssignment == self.assignment_const.penalty then
-        self.players:RemovePenalty(name)
+        p:RemovePenalty()
     end
 
     if newAssignment == self.assignment_const.sitout then
-        self.players:AddSitout(name)
+        p:AddSitout()
     elseif newAssignment == self.assignment_const.penalty then
-        self.players:AddPenalty(name)
+        p:AddPenalty()
     end
 end
 
@@ -256,18 +258,18 @@ function obj:AssignOnline()
     end
 end
 
--- TODO: Need a GetPlayerRole here?
-
 function obj:GetTooltipText(name)
-	local text = "Rank: " .. (Guild:GetRank(name) or "not in guild") .. "\n"
-	if Guild:GetNote(name) then
+    local p = self.players:Get(name)
+
+	local text = "Rank: " .. (p:GetGuildRank() or "not in guild") .. "\n"
+	if p:GetGuildNote() then
 		text = text ..
-            Guild:GetNote(name) .. "\n\n"
+            p:GetGuildNote() .. "\n\n"
 	else
 		text = text .. "\n"
 	end
 
-	if not Guild:IsMemberOnline(name) then
+	if not p:IsOnline() then
 		if ZebRaid:Tracker_IsAltOnline(name) then
 			text = text ..
                 "|cffff0000" .. L["ALT_ONLINE"] ..
@@ -293,16 +295,16 @@ function obj:GetTooltipText(name)
 
     text = text ..
         "|c9f3fff00" .. L["SIGNSTATS"] .. "|r: " ..
-        self.players:GetSignedCount(name) .. "/" ..
-        self.players:GetSitoutCount(name) .. "/" ..
-        self.players:GetPenaltyCount(name) .. "\n"
+        p:GetSignedCount() .. "/" ..
+        p:GetSitoutCount() .. "/" ..
+        p:GetPenaltyCount() .. "\n"
 
-	local sitoutDates = self.players:GetSitoutDates(name)
+	local sitoutDates = p:GetSitoutDates()
 	for _,v in ipairs(sitoutDates) do
 		text = text ..
             "|c7f1fcf00" .. v .. "|r\n"
 	end
-	local penaltyDates = self.players:GetPenaltyDates(name)
+	local penaltyDates = p:GetPenaltyDates()
 	for _,v in ipairs(penaltyDates) do
 		text = text ..
             "|cff1f1f00" .. v .. "|r\n"

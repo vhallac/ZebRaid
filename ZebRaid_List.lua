@@ -65,7 +65,7 @@ function obj:Update()
             makebuttons = false
         end
         -- Keep statistics. :)
-        local role = self.state.players:GetRole(name)
+        local role = self.state.players:Get(name):GetRole()
         self.counts[role] = self.counts[role] + 1
     end
 end
@@ -121,7 +121,7 @@ function obj:SetButtonRole(button, name)
         prefix = prefix .. "*"
 	end
 
-	buttonRole:SetText(prefix .. (RoleLetters[self.state.players:GetRole(name)] or "X") )
+	buttonRole:SetText(prefix .. (RoleLetters[self.state.players:Get(name):GetRole()] or "X") )
 
 	buttonRole:SetTextColor(0.8, 0.8, 0)
 end
