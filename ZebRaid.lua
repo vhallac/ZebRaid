@@ -650,7 +650,7 @@ function cmp_sort_for_sitout(name1, name2)
 end
 
 function ZebRaid:InitializeLists()
-	local and_ = function (...)
+	local f_and = function (...)
 		local funcs={...}
 
 		return function(name)
@@ -663,13 +663,26 @@ function ZebRaid:InitializeLists()
 			   end
 	end
 
-	local filter_by_signup = function(status)
+	local f_or = function (...)
+		local funcs={...}
+
+		return function(name)
+			local res = false
+			for i, f in ipairs(funcs) do
+				res = res or f(name)
+				if res then break end
+			end
+			return res
+			   end
+	end
+
+	local by_signup = function(status)
 		return function(name)
 			return self.state:GetSignupStatus(name) == status
 			   end
 	end
 
-	local filter_by_assignment = function(assignment)
+	local by_assignment = function(assignment)
 		return function(name)
 			return self.state:GetAssignment(name) == assignment
 			   end
@@ -679,72 +692,57 @@ function ZebRaid:InitializeLists()
 		return Guild:IsMemberOnline(name)
 	end
 
-	if not self.GuildList then
-		self.GuildList = self:NewList("GuildList",
-									  getglobal("ZebRaidDialogPanelGuildList"),
-									  self.state.assignment_const.unassigned)
-		self.GuildList:SetFilterFunc(
-			and_( filter_by_signup(self.state.signup_const.unknown),
-			      filter_by_assignment(self.state.assignment_const.unassigned),
-				  is_online))
-		self.GuildList:Update()
+	local make_list = function(name, assignment, filter_func, sort_func)
+		local list = self:NewList(name,
+								  getglobal("ZebRaidDialogPanel" .. name),
+								  assignment)
+		list:SetFilterFunc(filter_func)
+		list:SetSortFunc(sort_func)
+		list:Update()
+		return list
 	end
 
-	if not self.SignedUp then
-		self.SignedUp = self:NewList("SignedUp",
-									 getglobal("ZebRaidDialogPanelSignedUp"),
-									 self.state.assignment_const.unassigned)
-		self.SignedUp:SetFilterFunc(
-			and_( filter_by_signup(self.state.signup_const.signed),
-			      filter_by_assignment(self.state.assignment_const.unassigned)))
-		self.SignedUp:Update()
-	end
+	list_defs = {
+		GuildList = {
+			assignment = self.state.assignment_const.unassigned,
+			filter = f_and(by_signup(self.state.signup_const.unknown),
+						   by_assignment(self.state.assignment_const.unassigned),
 
-	if not self.Unsure then
-		self.Unsure = self:NewList("Unsure",
-								   getglobal("ZebRaidDialogPanelUnsure"),
-								   self.state.assignment_const.unassigned)
-		self.Unsure:SetFilterFunc(
-			and_( filter_by_signup(self.state.signup_const.unsure),
-  			      filter_by_assignment(self.state.assignment_const.unassigned)))
-		self.Unsure:Update()
-	end
+						   is_online)
+		},
+		SignedUp = {
+			assignment = self.state.assignment_const.unassigned,
+			filter = f_and(by_signup(self.state.signup_const.signed),
+						   by_assignment(self.state.assignment_const.unassigned))
+		},
+		Unsure = {
+			assignment = self.state.assignment_const.unassigned,
+			filter = f_and(by_signup(self.state.signup_const.unsure),
+						   by_assignment(self.state.assignment_const.unassigned))
+		},
+		Confirmed = {
+			assignment = self.state.assignment_const.confirmed,
+			filter = by_assignment(self.state.assignment_const.confirmed),
+			sort = cmp_sort_for_sitout
+		},
+		Reserved = {
+			assignment = self.state.assignment_const.reserved,
+			filter = by_assignment(self.state.assignment_const.reserved)
+		},
+		Penalty = {
+			assignment = self.state.assignment_const.penalty,
+			filter = by_assignment(self.state.assignment_const.penalty)
+		},
+		Sitout = {
+			assignment = self.state.assignment_const.sitout,
+			filter = by_assignment(self.state.assignment_const.sitout)
+		}
+	}
 
-	if not self.Confirmed then
-		self.Confirmed = self:NewList("Confirmed",
-									  getglobal("ZebRaidDialogPanelConfirmed"),
-									  self.state.assignment_const.confirmed)
-		self.Confirmed:SetFilterFunc(
-			filter_by_assignment(self.state.assignment_const.confirmed))
-		self.Confirmed:SetSortFunc(cmp_sort_for_sitout)
-		self.Confirmed:Update()
-	end
-
-	if not self.Reserved then
-		self.Reserved = self:NewList("Reserved",
-									 getglobal("ZebRaidDialogPanelReserved"),
-									 self.state.assignment_const.reserved)
-		self.Reserved:SetFilterFunc(
-			filter_by_assignment(self.state.assignment_const.reserved))
-		self.Reserved:Update()
-	end
-
-	if not self.Penalty then
-		self.Penalty = self:NewList("Penalty",
-									getglobal("ZebRaidDialogPanelPenalty"),
-								    self.state.assignment_const.penalty)
-		self.Penalty:SetFilterFunc(
-			filter_by_assignment(self.state.assignment_const.penalty))
-		self.Penalty:Update()
-	end
-
-	if not self.Sitout then
-		self.Sitout = self:NewList("Sitout",
-								   getglobal("ZebRaidDialogPanelSitout"),
-								   self.state.assignment_const.sitout)
-		self.Sitout:SetFilterFunc(
-			filter_by_assignment(self.state.assignment_const.sitout))
-		self.Sitout:Update()
+	for name, def in pairs(list_defs) do
+		if not self[name] then
+			self[name] = make_list(name, def.assignment, def.filter, def.sort)
+		end
 	end
 
 	local filter_func = function (name)
