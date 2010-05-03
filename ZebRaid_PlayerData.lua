@@ -161,3 +161,17 @@ function obj:RemoveSigned(name)
 	end
 end
 
+function obj:GetAlts(name)
+    local data = self:Get(name)
+    if data then return data.AltList end
+end
+
+function obj:AddAlt(name, alt)
+    local data = self:Get(name)
+    if data then
+        if not data.AltList then
+            data.AltList = {}
+        end
+        data.AltList[alt] = true
+    end
+end

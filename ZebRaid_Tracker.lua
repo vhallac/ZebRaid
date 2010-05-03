@@ -146,11 +146,7 @@ end
 function ZebRaid:OnALTLOGGEDIN(sender, mainName)
 	self:Debug("Received ALTLOGGEDIN from", sender, "for", mainName)
 	-- TODO: If I am no longer the master, tell the alt to talk to the new master
-	if ZebRaidPlayerData[mainName] then
-		if not ZebRaidPlayerData[mainName].AltList then
-			ZebRaidPlayerData[mainName].AltList = {}
-		end
-		ZebRaidPlayerData[mainName].AltList[sender] = true
+    if self.state.players:AddAlt(mainName, sender) then
 		self.AltOnline[mainName] = true
 		self.CurrentAlt[mainName] = sender
 	end

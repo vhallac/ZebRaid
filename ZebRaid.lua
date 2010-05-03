@@ -244,27 +244,17 @@ function ZebRaid:Start()
 	ZebRaidDialogPanelTitle:SetText(L["RAID_ID"] .. raidID)
 	self:ShowListMembers()
 
-	-- TODO: Tracker not supported yet...
-	-- If there is an offline player in the Sitout list, ask their alts' tracker to respond
---[[
-	if ZebRaidState.KarmaDB and
-	   ZebRaidState[ZebRaidState.KarmaDB]
-	then
-		local state = ZebRaidState[ZebRaidState.KarmaDB]
-		if state.Lists["Sitout"] then
-			for _, player in ipairs(state.Lists["Sitout"].members) do
-				if not Guild:IsMemberOnline(player) and
-					ZebRaidPlayerData[player] and
-					ZebRaidPlayerData[player].AltList
-				then
-					for name in pairs(ZebRaidPlayerData[player].AltList) do
-						self:Tracker_QueryPresence(name)
-					end
-				end
+	-- If there is an offline player in the Sitout list, ask their alts' tracker
+	-- to respond
+	for i, name in self.Sitout:GetIterator() do
+		local alts = self.state.players:GetAltList(name)
+		if not Guild:IsMemberOnline(name) and alts then
+			for alt in pairs(alts) do
+				self:Tracker_QueryPresence(alt)
 			end
 		end
 	end
---]]
+
 	StartWasCalled = true
 
 	ZebRaidDialog:Show()
@@ -760,21 +750,18 @@ function ZebRaid:InitializeLists()
 		self.Sitout:Update()
 	end
 
-
---[[ TODO: Tracker - How did it work again?
-	-- Create the lists
-	for _, list in pairs(ListNames) do
-		state.Lists[list] = self:NewList(list)
+	local filter_func = function (name)
+		-- Choose all players who has signup data
+		return self.state:GetSignupStatus(name) ~= self.state.signup_const.unknown
 	end
 
-	for name, val in pairs(state.RegisteredUsers) do
-		-- Tell all registered users that they are main chars
-		-- if they are online
+	-- Iterate thrhough all registered users and tell tracker to set the mains
+	-- for these people (if they are online)
+	for name, val in self.state:GetPlayerIterator(filter_func) do
 		if Guild:IsMemberOnline(name) then
 			self:Tracker_SetPlayerMain(name)
 		end
 	end
---]]
 end
 
 function ZebRaid:Reset()
