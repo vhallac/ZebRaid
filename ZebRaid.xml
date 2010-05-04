@@ -50,24 +50,10 @@
         ZebRaid:PlayerOnDoubleClick(self, button);
       </OnDoubleClick>
       <OnEnter>
-        if (this.tooltipText) then
-          GameTooltip:SetOwner(this, "ANCHOR_RIGHT");
-          if (this.tooltipDblLine) then
-            GameTooltip:AddDoubleLine(this.tooltipDblLine.left,
-                                      this.tooltipDblLine.right,
-                                      NORMAL_FONT_COLOR.r,
-                                      NORMAL_FONT_COLOR.g,
-                                      NORMAL_FONT_COLOR.b,
-                                      HIGHLIGHT_FONT_COLOR.r,
-                                      HIGHLIGHT_FONT_COLOR.g,
-                                      HIGHLIGHT_FONT_COLOR.b);
-          end
-          GameTooltip:AddLine(this.tooltipText, 1, 1, 1, 1);
-          GameTooltip:Show();
-        end
+        ZebRaid:PlayerOnEnter(self);
       </OnEnter>
       <OnLeave>
-        GameTooltip:Hide();
+        ZebRaid:PlayerOnLeave(self);
       </OnLeave>
     </Scripts>
   </Button>

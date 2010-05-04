@@ -394,6 +394,25 @@ function ZebRaid:PlayerOnDoubleClick(frame, button)
     end
 end
 
+function ZebRaid:PlayerOnEnter(frame)
+    local p = self.players:Get(frame.player)
+    GameTooltip:SetOwner(this, "ANCHOR_RIGHT");
+    GameTooltip:AddDoubleLine(name,
+                              p:GetClass(),
+                              NORMAL_FONT_COLOR.r,
+                              NORMAL_FONT_COLOR.g,
+                              NORMAL_FONT_COLOR.b,
+                              HIGHLIGHT_FONT_COLOR.r,
+                              HIGHLIGHT_FONT_COLOR.g,
+                              HIGHLIGHT_FONT_COLOR.b);
+    GameTooltip:AddLine(p:GetTooltipText(), 1, 1, 1, 1);
+    GameTooltip:Show();
+end
+
+function ZebRaid:PlayerOnLeave(frame)
+    GameTooltip:Hide()
+end
+
 -- Find a suitable assignment for the specified player
 -- RETURNS: the selected list, or null.
 function ZebRaid:ToggleAssignment(name)

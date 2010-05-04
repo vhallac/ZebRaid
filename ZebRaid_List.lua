@@ -79,7 +79,6 @@ function obj:InsertNewButton(name, pos)
     self:SetButtonRole(button, name)
     self:SetButtonLabel(button, name)
     self:SetButtonColor(button, name)
-    self:SetButtonTooltip(button, name)
 
     button.player = name
     if self:SetButtonPos(button, pos) then
@@ -155,17 +154,6 @@ function obj:SetButtonColor(button, name)
             buttonColor:SetTexture(0.2, 0.1, 0.1)
         end
     end
-end
-
-function obj:SetButtonTooltip(button, name)
-    local p=self.players:Get(name)
-    -- Add the guild info to tooltip
-    button.tooltipDblLine = {
-        left = name,
-        right = p:GetClass()
-    }
-
-    button.tooltipText = p:GetTooltipText()
 end
 
 function obj:SetButtonPos(button, pos)
