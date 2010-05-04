@@ -3,22 +3,14 @@ local Guild = LibStub("LibGuild-1.0")
 local addonName, addonTable = ...
 local ZebRaid = addonTable.ZebRaid
 
--- The function prototypes will go in here
-local ListClass = {
-}
-
 -- Define a shorter name for the following code
-local obj = ListClass
-
-function ZebRaid:NewList(name, visual, assignment)
-    return ZebRaid:Construct(ListClass, name, visual, assignment)
-end
+local obj = ZebRaid:NewClass("List", {})
 
 function obj:Construct(name, visual, assignment)
     self.name = name
     self.visual = visual
-    self.state = ZebRaid:NewState()
-    self.buttonFactory = ZebRaid:NewButtonFactory()
+    self.state = ZebRaid:Construct("State")
+    self.buttonFactory = ZebRaid:Construct("ButtonFactory")
     self.visual.listObj = self
     self.assignment = assignment
     self.counts = {

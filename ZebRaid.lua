@@ -141,15 +141,18 @@ function ZebRaid:OnInitialize()
 end
 
 function ZebRaid:OnEnable()
-	-- Set the saved variable backend for modules
-	self:SetStateBackend(ZebRaidState)
-	self:SetPlayerDataBackend(ZebRaidPlayerData)
+	-- Set up the data stores of the persistent classes
+	self:GetClass("State"):SetDataStore(ZebRaidState)
+	self:GetClass("PlayerData"):SetDataStore(ZebRaidPlayerData)
 
+	-- Shold I use a VARIABLES_LOADED event, and set the backends there? I don't
+	-- want to do this from constructor, because constructing object at wrong
+	-- point can mess things up.
 	if not self.state then
 		---
 		--- Create the state object
 		---
-		self.state = self:NewState()
+		self.state = self:Construct("State")
 	end
 
 	PlayerName, _ = UnitName("player")
@@ -696,9 +699,10 @@ function ZebRaid:InitializeLists()
 	end
 
 	local make_list = function(name, assignment, filter_func, sort_func)
-		local list = self:NewList(name,
-								  getglobal("ZebRaidDialogPanel" .. name),
-								  assignment)
+		local list = self:Construct("List",
+									name,
+									getglobal("ZebRaidDialogPanel" .. name),
+									assignment)
 		list:SetFilterFunc(filter_func)
 		list:SetSortFunc(sort_func)
 		list:Update()

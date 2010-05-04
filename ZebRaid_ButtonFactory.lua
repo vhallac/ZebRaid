@@ -1,18 +1,13 @@
 local addonName, addonTable = ...
 local ZebRaid = addonTable.ZebRaid
 
--- The function prototypes will go in here
-local ButtonFactoryClass = {
-    buttons = {},
-    allocCount = 0
-}
-
 -- Define a shorter name for the following code
-local obj = ButtonFactoryClass
-
-function ZebRaid:NewButtonFactory()
-    return ZebRaid:Construct(ButtonFactoryClass)
-end
+local obj = ZebRaid:NewClass(
+    "ButtonFactory",
+    {
+        buttons = {},
+        allocCount = 0
+    })
 
 function obj:Construct()
 end

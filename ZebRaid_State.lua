@@ -4,46 +4,37 @@ local addonName, addonTable = ...
 local ZebRaid = addonTable.ZebRaid
 
 -- The function prototypes will go in here
-local StateClass = {
-    UIMasters = {},          -- Broken feature: List of UI master per DB
+local obj = ZebRaid:NewClass(
+    "State",
+    {
+        UIMasters = {},          -- Broken feature: List of UI master per DB
 
-    signup_const = {
-        signed = "signed",      -- ready and willing
-        unsigned = "unsigned",  -- won't make it
-        unsure = "unsure",      -- May make it to invite time
-        unknown = "unknown"     -- didn't use the planner
-    },
+        signup_const = {
+            signed = "signed",      -- ready and willing
+            unsigned = "unsigned",  -- won't make it
+            unsure = "unsure",      -- May make it to invite time
+            unknown = "unknown"     -- didn't use the planner
+        },
 
-    assignment_const = {
-        unassigned = "unassigned", -- No raid status yet
-        confirmed = "confirmed",   -- Will raid
-        reserved = "reserved",     -- Spot reserved for member
-        penalty = "penalty",       -- Received a penalty (for not showing up)
-        sitout = "sitout",         -- Will be sitting out
-    }
-}
-
--- Define a shorter name for the following code
-local obj = StateClass
-
-function ZebRaid:NewState()
-    -- Get an accessor to player database shared by all instances
-    if not StateClass.players then
-        StateClass.players = ZebRaid:NewPlayerData()
-    end
-
-    return ZebRaid:Construct(StateClass)
-end
-
-function ZebRaid:SetStateBackend(state)
-    StateClass.data = state
-end
+        assignment_const = {
+            unassigned = "unassigned", -- No raid status yet
+            confirmed = "confirmed",   -- Will raid
+            reserved = "reserved",     -- Spot reserved for member
+            penalty = "penalty",       -- Received a penalty (for not showing up)
+            sitout = "sitout",         -- Will be sitting out
+        }
+    })
 
 function obj:Construct()
+    -- Get an accessor to player database shared by all instances
+    if not self.class.players then
+        self.class.players = ZebRaid:Construct("PlayerData")
+    end
+
     -- If we have a karma DB selected, choose the active state
     if self.data.KarmaDB then
         -- Need to set in in the shared state
-        StateClass.active = self.data[db]
+        self.class.active = self.data[db]
     end
 
     if self.active and not self.active.RegisteredUsers then
@@ -69,6 +60,11 @@ function obj:Construct()
             self:SetAssignment(name, self.assignment_const.unassigned)
         end
     end
+end
+
+-- Class method
+function obj:SetDataStore(state)
+    self.data = state
 end
 
 function obj:Cleanup()
@@ -102,7 +98,7 @@ function obj:SetKarmaDb(db)
     end
 
     -- Need to set in in the shared state
-    StateClass.active = self.data[db]
+    self.class.active = self.data[db]
 
     if not self.active.RegisteredUsers then
         self:ParseLocalRaidData()

@@ -2,23 +2,17 @@ local Guild = LibStub("LibGuild-1.0")
 local addonName, addonTable = ...
 local ZebRaid = addonTable.ZebRaid
 
--- The function prototypes will go in here
-local PlayerDataClass = {
-}
-
 -- Define a shorter name for the following code
-local obj = PlayerDataClass
-
-function ZebRaid:NewPlayerData()
-    return ZebRaid:Construct(PlayerDataClass)
-end
-
-function ZebRaid:SetPlayerDataBackend(data)
-    PlayerDataClass.data = data
-end
+local obj = ZebRaid:NewClass("PlayerData", {})
 
 function obj:Construct()
     -- Nothing to see here. Move on.
+end
+
+-- This is supposed to be called on the class.
+-- TODO: Any way we can separate class methods from instance methods?
+function obj:SetDataStore(data)
+    self.data = data
 end
 
 function obj:Get(name)
@@ -28,14 +22,13 @@ function obj:Get(name)
     return self:NewPlayer(self, name, self.data[name])
 end
 
+function obj:NewPlayer(playerdata, name, record)
+    return ZebRaid:Construct("Player", playerdata, name, record)
+end
+
 -- Class that represents a player. It has a PlayerData backend for persistent
 -- state management.
-PlayerClass = {
-}
-
-function obj:NewPlayer(playerdata, name, record)
-    return ZebRaid:Construct(PlayerClass, playerdata, name, record)
-end
+PlayerClass = ZebRaid:NewClass("Player", {})
 
 function PlayerClass:Construct(playerdata, name, record)
     self.playerData = playerdata

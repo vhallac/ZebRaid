@@ -1,4 +1,5 @@
 ﻿local RBC = LibStub("LibBabble-Class-3.0"):GetReverseLookupTable()
+local addonName, addonTable = ...
 
 function ZebRaid:GetEnglishClass(name)
 	if name then
@@ -20,18 +21,44 @@ function ZebRaid:GetClassColor(name)
 	end
 end
 
+--
 -- Poor man's objects. Supports object construction and static members, and not
 -- much else.
-function ZebRaid:Construct(class, ...)
-    local instance = setmetatable({},
-                                  {
-                                      __index = class,
-                                      __newindex = function(tbl, key, val)
-                                          if class[key] then class[key] = val
-                                          else rawset(tbl, key, val) end
-                                      end})
-    if instance then
-        instance:Construct(...)
+--
+
+addonTable.classes = {}
+
+function ZebRaid:NewClass(name, class)
+    addonTable.classes[name] = class
+
+    local meta = {
+        __index = class,
+        __newindex = function(tbl, key, val)
+            if class[key] then class[key] = val
+            else rawset(tbl, key, val) end
+        end}
+    class.New = function (self, ...)
+        local instance = setmetatable({}, meta)
+        if instance then
+            -- Make it an instance variable to prevent self-referencing class objects.
+            instance.class = class
+            instance:Construct(...)
+        end
+        return instance
+    end
+
+    return class
+end
+
+function ZebRaid:GetClass(name)
+    return addonTable.classes[name]
+end
+
+function ZebRaid:Construct(name, ...)
+    local class = self:GetClass(name)
+    local instance
+    if class then
+        instance = class:New(...)
     end
     return instance
 end
