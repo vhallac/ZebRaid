@@ -43,7 +43,7 @@ end
 -- Overrides for new version. This is a backward compatibility problem
 -- introduced by the wrm4 script.
 local RoleOverrides={
-	["healing"] = "healer"
+    ["healing"] = "healer"
 }
 
 function PlayerClass:SetRole(role)
@@ -69,29 +69,29 @@ end
 
 function PlayerClass:GetSitoutDates()
     if not self.record.sitoutDates then self.record.sitoutDates = {} end
-	return self.record.sitoutDates
+    return self.record.sitoutDates
 end
 
 function PlayerClass:GetLastSitoutDate()
-	local dates = self:GetSitoutDates()
-	return dates[#dates] or "01/01/09"
+    local dates = self:GetSitoutDates()
+    return dates[#dates] or "01/01/09"
 end
 
 function PlayerClass:AddSitout()
-	local curDate = ZebRaid:GetRaidDate()
-	local lastSitout = self:GetLastSitoutDate()
-	if curDate ~= lastSitout then
-		table.insert(self:GetSitoutDates(), curDate)
-	end
+    local curDate = ZebRaid:GetRaidDate()
+    local lastSitout = self:GetLastSitoutDate()
+    if curDate ~= lastSitout then
+        table.insert(self:GetSitoutDates(), curDate)
+    end
 end
 
 function PlayerClass:RemoveSitout()
-	local curDate = ZebRaid:GetRaidDate()
-	local lastSitout = self:GetLastSitoutDate()
-	if  lastSitout == curDate then
+    local curDate = ZebRaid:GetRaidDate()
+    local lastSitout = self:GetLastSitoutDate()
+    if  lastSitout == curDate then
         local dates = self:GetSitoutDates()
         table.remove(dates, #dates)
-	end
+    end
 end
 
 function PlayerClass:GetPenaltyCount()
@@ -104,25 +104,25 @@ function PlayerClass:GetPenaltyDates()
 end
 
 function PlayerClass:GetLastPenaltyDate()
-	local dates = self:GetPenaltyDates()
-	return dates[#dates] or "01/01/09"
+    local dates = self:GetPenaltyDates()
+    return dates[#dates] or "01/01/09"
 end
 
 function PlayerClass:AddPenalty()
-	local curDate = ZebRaid:GetRaidDate()
-	local lastPenalty = self:GetLastPenaltyDate()
-	if curDate ~= lastPenalty then
-		table.insert(self:GetPenaltyDates(), curDate)
-	end
+    local curDate = ZebRaid:GetRaidDate()
+    local lastPenalty = self:GetLastPenaltyDate()
+    if curDate ~= lastPenalty then
+        table.insert(self:GetPenaltyDates(), curDate)
+    end
 end
 
 function PlayerClass:RemovePenalty()
-	local curDate = ZebRaid:GetRaidDate()
-	local lastPenalty = self:GetLastPenaltyDate()
-	if  lastPenalty == curDate then
+    local curDate = ZebRaid:GetRaidDate()
+    local lastPenalty = self:GetLastPenaltyDate()
+    if  lastPenalty == curDate then
         local dates = self:GetPenaltyDates()
         table.remove(dates, #dates)
-	end
+    end
 end
 
 function PlayerClass:GetSignedCount()
@@ -131,29 +131,29 @@ end
 
 function PlayerClass:GetSignedDates()
     if not self.record.sitoutDates then self.record.sitoutDates = {} end
-	return self.record.sitoutDates
+    return self.record.sitoutDates
 end
 
 function PlayerClass:GetLastSignedDate()
-	local dates = self:GetSignedDates()
-	return dates[#dates] or "01/01/09"
+    local dates = self:GetSignedDates()
+    return dates[#dates] or "01/01/09"
 end
 
 function PlayerClass:AddSigned()
-	local curDate = ZebRaid:GetRaidDate()
-	local lastSigned = self:GetLastSignedDate()
-	if curDate ~= lastSigned then
-		table.insert(self:GetSignedDates(), curDate)
-	end
+    local curDate = ZebRaid:GetRaidDate()
+    local lastSigned = self:GetLastSignedDate()
+    if curDate ~= lastSigned then
+        table.insert(self:GetSignedDates(), curDate)
+    end
 end
 
 function PlayerClass:RemoveSigned()
-	local curDate = ZebRaid:GetRaidDate()
-	local lastSigned = self:GetLastSignedDate()
-	if  lastSigned == curDate then
+    local curDate = ZebRaid:GetRaidDate()
+    local lastSigned = self:GetLastSignedDate()
+    if  lastSigned == curDate then
         local dates = self:GetSignedDates()
         table.remove(dates, #dates)
-	end
+    end
 end
 
 function PlayerClass:GetAlts()

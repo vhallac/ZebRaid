@@ -15,11 +15,11 @@ function obj:Construct(name, visual, assignment)
     self.assignment = assignment
     self.counts = {
         ["melee"] = 0,
-		["ranged"] = 0,
-		["healer"] = 0,
-		["tank"] = 0,
-		["hybrid"] = 0,
-		["unknown"] = 0
+        ["ranged"] = 0,
+        ["healer"] = 0,
+        ["tank"] = 0,
+        ["hybrid"] = 0,
+        ["unknown"] = 0
     }
     self.buttons = {}
 end
@@ -96,82 +96,82 @@ end
 
 -- The letters we use in the lists to indicate raid role
 local RoleLetters = {
-	melee = "M",
-	tank = "T",
-	healer = "H",
-	ranged = "R",
-	hybrid = "Y",
-	unknown = "?"
+    melee = "M",
+    tank = "T",
+    healer = "H",
+    ranged = "R",
+    hybrid = "Y",
+    unknown = "?"
 }
 
 function obj:SetButtonRole(button, name)
-	local buttonRole = getglobal(button:GetName() .. "Role")
-	local prefix = ""
+    local buttonRole = getglobal(button:GetName() .. "Role")
+    local prefix = ""
 
-	-- Put a * before the role if there is a note.
+    -- Put a * before the role if there is a note.
     if self.state:GetSignupNote(name) then
         prefix = prefix .. "*"
-	end
+    end
 
-	buttonRole:SetText(prefix .. (RoleLetters[self.state.players:Get(name):GetRole()] or "X") )
+    buttonRole:SetText(prefix .. (RoleLetters[self.state.players:Get(name):GetRole()] or "X") )
 
-	buttonRole:SetTextColor(0.8, 0.8, 0)
+    buttonRole:SetTextColor(0.8, 0.8, 0)
 end
 
 function obj:SetButtonLabel(button, name)
-	local buttonLabel = getglobal(button:GetName() .. "Label")
+    local buttonLabel = getglobal(button:GetName() .. "Label")
 
-	-- Put a x before the name if the user has unsigned from the raid
-	local prefix = ""
+    -- Put a x before the name if the user has unsigned from the raid
+    local prefix = ""
     if self.state:GetSignupStatus() == self.state.signup_const.unsigned then
         prefix = prefix .. "x"
     end
 
-	buttonLabel:SetText(prefix .. name)
-	buttonLabel:SetTextColor(Guild:GetClassColor(name))
+    buttonLabel:SetText(prefix .. name)
+    buttonLabel:SetTextColor(Guild:GetClassColor(name))
 end
 
 -- TODO: These are supposed to be only for the confirmed list
 -- We may need a special callout for the logic here
 function obj:SetButtonColor(button, name)
-	local buttonColor = getglobal(button:GetName() .. "Color")
-	if Guild:IsMemberOnline(name) then
-		if ZebRaid:IsPlayerInRaid(name) then
-			-- Confirmed and in raid player background color
-			buttonColor:SetTexture(0.1, 0.3, 0.1)
-		else
-			-- Online player background color
-			buttonColor:SetTexture(0.05, 0.05, 0.05)
-		end
-	else
-		if ZebRaid:IsPlayerInRaid(button, name) then
-			-- Offline: Confirmed and in raid player background color
-			buttonColor:SetTexture(0.2, 0.2, 0.1)
-		elseif ZebRaid:Tracker_IsAltOnline(name) then
-			buttonColor:SetTexture(0.1, 0.1, 0.2)
-		else
-			-- Offline player background color
-			buttonColor:SetTexture(0.2, 0.1, 0.1)
-		end
-	end
+    local buttonColor = getglobal(button:GetName() .. "Color")
+    if Guild:IsMemberOnline(name) then
+        if ZebRaid:IsPlayerInRaid(name) then
+            -- Confirmed and in raid player background color
+            buttonColor:SetTexture(0.1, 0.3, 0.1)
+        else
+            -- Online player background color
+            buttonColor:SetTexture(0.05, 0.05, 0.05)
+        end
+    else
+        if ZebRaid:IsPlayerInRaid(button, name) then
+            -- Offline: Confirmed and in raid player background color
+            buttonColor:SetTexture(0.2, 0.2, 0.1)
+        elseif ZebRaid:Tracker_IsAltOnline(name) then
+            buttonColor:SetTexture(0.1, 0.1, 0.2)
+        else
+            -- Offline player background color
+            buttonColor:SetTexture(0.2, 0.1, 0.1)
+        end
+    end
 end
 
 function obj:SetButtonTooltip(button, name)
-	-- Add the guild info to tooltip
-	button.tooltipDblLine = {
-		left = name,
-		right = Guild:GetClass(name)
-	}
+    -- Add the guild info to tooltip
+    button.tooltipDblLine = {
+        left = name,
+        right = Guild:GetClass(name)
+    }
 
-	button.tooltipText = self.state:GetTooltipText(name)
+    button.tooltipText = self.state:GetTooltipText(name)
 end
 
 function obj:SetButtonPos(button, pos)
-	-- Place the button in its list
-	button:ClearAllPoints()
+    -- Place the button in its list
+    button:ClearAllPoints()
     -- TODO: Layou the slots dynamically at constructor
-	local slot = getglobal(self.visual:GetName() .. "Slot" .. pos)
-	if slot then
+    local slot = getglobal(self.visual:GetName() .. "Slot" .. pos)
+    if slot then
         button:SetPoint("TOP", slot)
         button:SetHitRectInsets(0, 0, 0, 0)
         button:SetFrameLevel(slot:GetFrameLevel() + 20)

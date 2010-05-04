@@ -53,8 +53,8 @@ function obj:Construct()
 --]]
     -- Now, go through each online member, and add assignments for them if they
     -- don't have one.
-	for name in Guild:GetIterator("NAME", false) do
-		if Guild:GetLevel(name) == 80 and
+    for name in Guild:GetIterator("NAME", false) do
+        if Guild:GetLevel(name) == 80 and
             not self:GetAssignment(name)
         then
             self:SetAssignment(name, self.assignment_const.unassigned)
@@ -68,20 +68,20 @@ function obj:SetDataStore(state)
 end
 
 function obj:Cleanup()
-	--
-	-- If we are not the master or we do not know the master of a list,
-	-- and if the DB's raid ID does not match our current raid ID, then
-	-- remove the state for that DB.
-	--
-	for db, val in pairs(ZebRaidState) do
-		if (type(ZebRaidState[db]) == "table") and
+    --
+    -- If we are not the master or we do not know the master of a list,
+    -- and if the DB's raid ID does not match our current raid ID, then
+    -- remove the state for that DB.
+    --
+    for db, val in pairs(ZebRaidState) do
+        if (type(ZebRaidState[db]) == "table") and
             (not self.UIMasters[db]) and
             (val.RaidID ~= ZebRaid.RaidID)
-		then
-			ZebRaid:Debug("Erasing db state " .. db)
-			ZebRaidState[db] = nil
-		end
-	end
+        then
+            ZebRaid:Debug("Erasing db state " .. db)
+            ZebRaidState[db] = nil
+        end
+    end
 end
 
 function obj:SetKarmaDb(db)
@@ -212,22 +212,22 @@ end
 
 function obj:SetUiMaster(db, name)
     self.UIMasters[db] = name
-	--[[
-	self:BroadcastComm("ANNOUNCE_MASTER",
-							ZebRaidState.KarmaDB, state.RaidID,
-							state.RegisteredUsers,
-							state.Lists)
-	]]--
+    --[[
+    self:BroadcastComm("ANNOUNCE_MASTER",
+                            ZebRaidState.KarmaDB, state.RaidID,
+                            state.RegisteredUsers,
+                            state.Lists)
+    ]]--
 end
 
 function obj:RemoveUiMaster(name)
-	for db, val in pairs(self.UIMasters) do
-		ZebRaid.UIMasters[db] = nil
-		if self:GetKarmaDb() == db then
+    for db, val in pairs(self.UIMasters) do
+        ZebRaid.UIMasters[db] = nil
+        if self:GetKarmaDb() == db then
             -- FIXME: Why am I locking my UI again?
-			ZebRaid:LockUI()
-		end
-	end
+            ZebRaid:LockUI()
+        end
+    end
 end
 
 function obj:ResetAssignments()
@@ -246,7 +246,7 @@ end
 
 function obj:AssignOnline()
     for name in Guild:GetIterator("NAME", false) do
-		if Guild:GetLevel(name) == 80 and
+        if Guild:GetLevel(name) == 80 and
             not self:GetAssignment(name) -- This will not cause recursion
         then
             self:SetAssignment(name, self.assignment_const.unassigned)
@@ -257,25 +257,25 @@ end
 function obj:GetTooltipText(name)
     local p = self.players:Get(name)
 
-	local text = "Rank: " .. (p:GetGuildRank() or "not in guild") .. "\n"
-	if p:GetGuildNote() then
-		text = text ..
+    local text = "Rank: " .. (p:GetGuildRank() or "not in guild") .. "\n"
+    if p:GetGuildNote() then
+        text = text ..
             p:GetGuildNote() .. "\n\n"
-	else
-		text = text .. "\n"
-	end
+    else
+        text = text .. "\n"
+    end
 
-	if not p:IsOnline() then
-		if ZebRaid:Tracker_IsAltOnline(name) then
-			text = text ..
+    if not p:IsOnline() then
+        if ZebRaid:Tracker_IsAltOnline(name) then
+            text = text ..
                 "|cffff0000" .. L["ALT_ONLINE"] ..
                 ": " .. ZebRaid:Tracker_GetCurrentAlt(name) ..
                 "|r\n\n"
-		else
-			text = text ..
+        else
+            text = text ..
                 "|cffff0000" .. L["PLAYER_OFFLINE"] .. "|r\n\n"
-		end
-	end
+        end
+    end
 
     local status = self:GetSignupStatus(name)
     if status == self.signup_const.unsigned then
@@ -295,39 +295,39 @@ function obj:GetTooltipText(name)
         p:GetSitoutCount() .. "/" ..
         p:GetPenaltyCount() .. "\n"
 
-	local sitoutDates = p:GetSitoutDates()
-	for _,v in ipairs(sitoutDates) do
-		text = text ..
+    local sitoutDates = p:GetSitoutDates()
+    for _,v in ipairs(sitoutDates) do
+        text = text ..
             "|c7f1fcf00" .. v .. "|r\n"
-	end
-	local penaltyDates = p:GetPenaltyDates()
-	for _,v in ipairs(penaltyDates) do
-		text = text ..
+    end
+    local penaltyDates = p:GetPenaltyDates()
+    for _,v in ipairs(penaltyDates) do
+        text = text ..
             "|cff1f1f00" .. v .. "|r\n"
-	end
+    end
     return text
 end
 
 function obj:ParseLocalRaidData()
     -- Get rid of old data
     self.active.RegisteredUsers = {}
-	for _,val in pairs(ZebRaid.Signups) do
-		ZebRaid:Debug("Value: " .. val)
-		local name, status, role, note =
-			select(3, val:find("^([^:]+):([^:]+):([^:]+):?(.*)"))
+    for _,val in pairs(ZebRaid.Signups) do
+        ZebRaid:Debug("Value: " .. val)
+        local name, status, role, note =
+            select(3, val:find("^([^:]+):([^:]+):([^:]+):?(.*)"))
 
-		local list = nil
+        local list = nil
 
         self:AddRegisteredUser(name, status, role, note)
-	end
+    end
 end
 
 -- Get an iterator for known players in assigned list.
 -- filterfunc is called with name
 -- sortfunc is called with the names of the players tro be compared
 local iter = function(t)
-	local n = t.n + 1
-	t.n = n
+    local n = t.n + 1
+    t.n = n
     if t[n] then
         return n, t[n]
     end
@@ -343,8 +343,8 @@ function obj:GetPlayerIterator(filterfunc, sortfunc)
             end
         end
     end
-	table.sort(tmp, sortfunc)
-	tmp.n = 0
+    table.sort(tmp, sortfunc)
+    tmp.n = 0
 
-	return iter, tmp, nil
+    return iter, tmp, nil
 end
