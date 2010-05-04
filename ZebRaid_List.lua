@@ -8,7 +8,7 @@ local obj = ZebRaid:NewClass("List", {})
 function obj:Construct(name, visual, assignment)
     self.name = name
     self.visual = visual
-    self.state = ZebRaid:Construct("State")
+    self.players = ZebRaid:Construct("PlayerData")
     self.buttonFactory = ZebRaid:Construct("ButtonFactory")
     self.visual.listObj = self
     self.assignment = assignment
@@ -47,7 +47,7 @@ function obj:Update()
     end
 
     local makebuttons = true
-    for i, name in self.state:GetPlayerIterator(self.filterfunc, self.sortfunc) do
+    for i, name in self:GetIterator() do
         -- TODO: It should be possible to do incremental updates here
         -- WTB more side-effect programming. Fix it!
         if makebuttons and not self:InsertNewButton(name, i) then
@@ -56,7 +56,7 @@ function obj:Update()
             makebuttons = false
         end
         -- Keep statistics. :)
-        local role = self.state.players:Get(name):GetRole()
+        local role = self.players:Get(name):GetRole()
         self.counts[role] = self.counts[role] + 1
     end
 end
@@ -106,13 +106,14 @@ local RoleLetters = {
 function obj:SetButtonRole(button, name)
     local buttonRole = getglobal(button:GetName() .. "Role")
     local prefix = ""
+    local p=self.players:Get(name)
 
     -- Put a * before the role if there is a note.
-    if self.state:GetSignupNote(name) then
+    if p:GetSignupNote() then
         prefix = prefix .. "*"
     end
 
-    buttonRole:SetText(prefix .. (RoleLetters[self.state.players:Get(name):GetRole()] or "X") )
+    buttonRole:SetText(prefix .. (RoleLetters[p:GetRole()] or "X") )
 
     buttonRole:SetTextColor(0.8, 0.8, 0)
 end
@@ -122,7 +123,8 @@ function obj:SetButtonLabel(button, name)
 
     -- Put a x before the name if the user has unsigned from the raid
     local prefix = ""
-    if self.state:GetSignupStatus() == self.state.signup_const.unsigned then
+    -- TODO: Move constants to a sensible location
+    if self.players:Get(name):GetSignupStatus() == ZebRaid.signup_const.unsigned then
         prefix = prefix .. "x"
     end
 
@@ -156,13 +158,14 @@ function obj:SetButtonColor(button, name)
 end
 
 function obj:SetButtonTooltip(button, name)
+    local p=self.players:Get(name)
     -- Add the guild info to tooltip
     button.tooltipDblLine = {
         left = name,
-        right = Guild:GetClass(name)
+        right = p:GetClass()
     }
 
-    button.tooltipText = self.state:GetTooltipText(name)
+    button.tooltipText = p:GetTooltipText()
 end
 
 function obj:SetButtonPos(button, pos)
@@ -183,5 +186,5 @@ function obj:SetButtonPos(button, pos)
 end
 
 function obj:GetIterator()
-    return self.state:GetPlayerIterator(self.filterfunc, self.sortfunc)
+    return self.players:GetIterator(self.filterfunc, self.sortfunc)
 end

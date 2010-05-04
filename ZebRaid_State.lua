@@ -1,32 +1,33 @@
 local Guild = LibStub("LibGuild-1.0")
-local L = LibStub("AceLocale-3.0"):GetLocale("ZebRaid", true)
 local addonName, addonTable = ...
 local ZebRaid = addonTable.ZebRaid
+
+ZebRaid.signup_const = {
+    signed = "signed",      -- ready and willing
+    unsigned = "unsigned",  -- won't make it
+    unsure = "unsure",      -- May make it to invite time
+    unknown = "unknown"     -- didn't use the planner
+}
+
+ZebRaid.assignment_const = {
+    unassigned = "unassigned", -- No raid status yet
+    confirmed = "confirmed",   -- Will raid
+    reserved = "reserved",     -- Spot reserved for member
+    penalty = "penalty",       -- Received a penalty (for not showing up)
+    sitout = "sitout",         -- Will be sitting out
+}
 
 local obj = ZebRaid:NewClass(
     "State",
     {
         UIMasters = {},          -- Broken feature: List of UI master per DB
-
-        signup_const = {
-            signed = "signed",      -- ready and willing
-            unsigned = "unsigned",  -- won't make it
-            unsure = "unsure",      -- May make it to invite time
-            unknown = "unknown"     -- didn't use the planner
-        },
-
-        assignment_const = {
-            unassigned = "unassigned", -- No raid status yet
-            confirmed = "confirmed",   -- Will raid
-            reserved = "reserved",     -- Spot reserved for member
-            penalty = "penalty",       -- Received a penalty (for not showing up)
-            sitout = "sitout",         -- Will be sitting out
-        }
     })
 
 function obj:Construct()
     -- Get an accessor to player database shared by all instances
     if not self.class.players then
+        -- stop the infinite loop
+        self.class.players = true
         self.class.players = ZebRaid:Construct("PlayerData")
     end
 
@@ -46,7 +47,7 @@ function obj:Construct()
         self.active.Assignments = {}
 
         for name in pairs(self.RegisteredUsers) do
-            self:SetAssignment(name, self.assignment_const.unassigned)
+            self:SetAssignment(name, ZebRaid.assignment_const.unassigned)
         end
     end
 --]]
@@ -56,7 +57,7 @@ function obj:Construct()
         if Guild:GetLevel(name) == 80 and
             not self:GetAssignment(name)
         then
-            self:SetAssignment(name, self.assignment_const.unassigned)
+            self:SetAssignment(name, ZebRaid.assignment_const.unassigned)
         end
     end
 end
@@ -150,7 +151,7 @@ function obj:GetSignupStatus(name)
 
     return ( self.active.RegisteredUsers[name] and
              self.active.RegisteredUsers[name].status or
-             self.signup_const.unknown )
+             ZebRaid.signup_const.unknown )
 end
 
 function obj:GetSignupNote(name)
@@ -187,15 +188,15 @@ end
 function obj:AdjustSitoutPenalty(name, oldAssignment, newAssignment)
     local p = self.players:Get(name)
 
-    if oldAssignment == self.assignment_const.sitout then
+    if oldAssignment == ZebRaid.assignment_const.sitout then
         p:RemoveSitout()
-    elseif oldAssignment == self.assignment_const.penalty then
+    elseif oldAssignment == ZebRaid.assignment_const.penalty then
         p:RemovePenalty()
     end
 
-    if newAssignment == self.assignment_const.sitout then
+    if newAssignment == ZebRaid.assignment_const.sitout then
         p:AddSitout()
-    elseif newAssignment == self.assignment_const.penalty then
+    elseif newAssignment == ZebRaid.assignment_const.penalty then
         p:AddPenalty()
     end
 end
@@ -237,7 +238,7 @@ function obj:ResetAssignments()
     end
 
     for name in pairs(self.active.RegisteredUsers) do
-        self:SetAssignment(name, self.assignment_const.unassigned)
+        self:SetAssignment(name, ZebRaid.assignment_const.unassigned)
     end
 
     self:AssignOnline()
@@ -248,63 +249,9 @@ function obj:AssignOnline()
         if Guild:GetLevel(name) == 80 and
             not self:GetAssignment(name) -- This will not cause recursion
         then
-            self:SetAssignment(name, self.assignment_const.unassigned)
+            self:SetAssignment(name, ZebRaid.assignment_const.unassigned)
         end
     end
-end
-
-function obj:GetTooltipText(name)
-    local p = self.players:Get(name)
-
-    local text = "Rank: " .. (p:GetGuildRank() or "not in guild") .. "\n"
-    if p:GetGuildNote() then
-        text = text ..
-            p:GetGuildNote() .. "\n\n"
-    else
-        text = text .. "\n"
-    end
-
-    if not p:IsOnline() then
-        if ZebRaid:Tracker_IsAltOnline(name) then
-            text = text ..
-                "|cffff0000" .. L["ALT_ONLINE"] ..
-                ": " .. ZebRaid:Tracker_GetCurrentAlt(name) ..
-                "|r\n\n"
-        else
-            text = text ..
-                "|cffff0000" .. L["PLAYER_OFFLINE"] .. "|r\n\n"
-        end
-    end
-
-    local status = self:GetSignupStatus(name)
-    if status == self.signup_const.unsigned then
-        text = text ..
-            "|cffff0000" .. L["PLAYER_UNSIGNED"] .. "|r\n\n"
-    end
-
-    local note = self:GetSignupNote(name)
-    if note then
-        text = text .. "\n" ..
-            "|cffffff00Note: " .. note .. "|r\n"
-    end
-
-    text = text ..
-        "|c9f3fff00" .. L["SIGNSTATS"] .. "|r: " ..
-        p:GetSignedCount() .. "/" ..
-        p:GetSitoutCount() .. "/" ..
-        p:GetPenaltyCount() .. "\n"
-
-    local sitoutDates = p:GetSitoutDates()
-    for _,v in ipairs(sitoutDates) do
-        text = text ..
-            "|c7f1fcf00" .. v .. "|r\n"
-    end
-    local penaltyDates = p:GetPenaltyDates()
-    for _,v in ipairs(penaltyDates) do
-        text = text ..
-            "|cff1f1f00" .. v .. "|r\n"
-    end
-    return text
 end
 
 function obj:ParseLocalRaidData()
@@ -321,29 +268,16 @@ function obj:ParseLocalRaidData()
     end
 end
 
--- Get an iterator for known players in assigned list.
--- filterfunc is called with name
--- sortfunc is called with the names of the players tro be compared
-local iter = function(t)
-    local n = t.n + 1
-    t.n = n
-    if t[n] then
-        return n, t[n]
-    end
-end
-function obj:GetPlayerIterator(filterfunc, sortfunc)
-    local tmp = {}
+function obj:RegistrationIterator()
     if self.active then
-        for name, assignment in pairs(self.active.Assignments) do
-            if not filterfunc or
-                filterfunc(name)
-            then
-                table.insert(tmp, name)
-            end
-        end
+        return pairs(self.active.RegisteredUsers or {})
     end
-    table.sort(tmp, sortfunc)
-    tmp.n = 0
+    return pairs({})
+end
 
-    return iter, tmp, nil
+function obj:AssignmentsIterator()
+    if self.active then
+        return pairs(self.active.Assignments or {})
+    end
+    return pairs({})
 end

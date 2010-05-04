@@ -155,6 +155,13 @@ function ZebRaid:OnEnable()
         self.state = self:Construct("State")
     end
 
+    if not self.players then
+        ---
+        --- Create the state object
+        ---
+        self.players = self:Construct("PlayerData")
+    end
+
     PlayerName, _ = UnitName("player")
 
     Guild.RegisterCallback(self, "Update", "GuildStatusUpdated")
@@ -250,7 +257,7 @@ function ZebRaid:Start()
     -- If there is an offline player in the Sitout list, ask their alts' tracker
     -- to respond
     for i, name in self.Sitout:GetIterator() do
-        local alts = self.state.players:Get(name):GetAltList()
+        local alts = self.players:Get(name):GetAltList()
         if not Guild:IsMemberOnline(name) and alts then
             for alt in pairs(alts) do
                 self:Tracker_QueryPresence(alt)
@@ -325,10 +332,10 @@ function ZebRaid:PlayerOnDragStop(frame)
 
     -- Not signed up or unsigned => Cannot go to SignedUp, Unsure, or Penalty
     -- Allow Sitout for people who forgot to sign.
-    local signStat = self.state:GetSignupStatus(frame.player)
+    local signStat = self.players:Get(frame.player):GetSignupStatus()
 
-    if signStat == self.state.signup_const.unsigned or
-        signStat == self.state.signup_const.unknown
+    if signStat == self.signup_const.unsigned or
+        signStat == self.signup_const.unknown
     then
         if ( list == self.Penalty or
              list == self.SignedUp or
@@ -339,13 +346,13 @@ function ZebRaid:PlayerOnDragStop(frame)
     else
         -- Unsure => Cannot go to Penalty
         if list == self.Penalty and
-            signStat == self.state.signup_const.unsure
+            signStat == self.signup_const.unsure
         then
             list = frame.inList
         end
 
         -- SignedUp or Unsure cannot go back to guild
-        if signStat ~= self.state.signup_const.unknown and
+        if signStat ~= self.signup_const.unknown and
             list == self.GuildList
         then
             list = frame.inList
@@ -353,9 +360,9 @@ function ZebRaid:PlayerOnDragStop(frame)
 
         -- SignedUp and Unsure cannot go each other
 
-        if  ( signStat == self.state.signup_const.signed and
+        if  ( signStat == self.signup_const.signed and
               list == self.Unsure ) or
-            ( signStat == self.state.signup_const.unsure and
+            ( signStat == self.signup_const.unsure and
               list == self.SignedUp )
         then
             list = frame.inList
@@ -364,7 +371,7 @@ function ZebRaid:PlayerOnDragStop(frame)
 
     -- If we've moved the player, set up his/her new assignment
     if list ~= frame.inList then
-        self.state:SetAssignment(frame.player, list:GetAssignment())
+        self.players:Get(frame.player):SetAssignment(list:GetAssignment())
     end
 
     DraggingPlayer = nil
@@ -380,8 +387,9 @@ function ZebRaid:PlayerOnDoubleClick(frame, button)
     if self.UiLockedDown then return end
 
     local newassignment = self:ToggleAssignment(frame.player)
-    if self.state:GetAssignment(frame.player) ~= newassignment then
-        self.state:SetAssignment(frame.player, newassignment)
+    local p = self.players:Get(frame.player)
+    if p:GetAssignment() ~= newassignment then
+        p:SetAssignment(newassignment)
         self:ShowListMembers()
     end
 end
@@ -389,28 +397,29 @@ end
 -- Find a suitable assignment for the specified player
 -- RETURNS: the selected list, or null.
 function ZebRaid:ToggleAssignment(name)
-    local assignment = self.state:GetAssignment(name)
-    local signup = self.state:GetSignupStatus(name)
-    local newassignment = self.state.assignment_const.unassigned
+    local p = self.players:Get(name)
+    local assignment = p:GetAssignment()
+    local signup = p:GetSignupStatus()
+    local newassignment = self.assignment_const.unassigned
 
-    if assignment == self.state.assignment_const.unassigned then
-        if signup == self.state.signup_const.signed then
-            newassignment = self.state.assignment_const.confirmed
-        elseif signup == self.state.signup_const.unsure then
+    if assignment == self.assignment_const.unassigned then
+        if signup == self.signup_const.signed then
+            newassignment = self.assignment_const.confirmed
+        elseif signup == self.signup_const.unsure then
             if Guild:IsMemberOnline(name) then
-                newassignment = self.state.assignment_const.confirmed
+                newassignment = self.assignment_const.confirmed
             else
-                newassignment = self.state.assignment_const.reserved
+                newassignment = self.assignment_const.reserved
             end
         else -- Guild list: only shows online people, so I must want to confirm them
-            newassignment = self.state.assignment_const.confirmed
+            newassignment = self.assignment_const.confirmed
         end
-    elseif assignment == self.state.assignment_const.reserved or
-        assignment == self.state.assignment_const.confirmed or
-        assignment == self.state.assignment_const.penalty or
-        assignment == self.state.assignment_const.sitout
+    elseif assignment == self.assignment_const.reserved or
+        assignment == self.assignment_const.confirmed or
+        assignment == self.assignment_const.penalty or
+        assignment == self.assignment_const.sitout
     then
-        newassignment = self.state.assignment_const.unassigned
+        newassignment = self.assignment_const.unassigned
     end
 
     -- TODO: Want to implement this?
@@ -434,8 +443,9 @@ function ZebRaid:MemberConnected(name)
 
     if not self.state:GetKarmaDb() then return end
 
-    if self.state:GetAssignment(name) == self.state.assignment_const.unknown then
-        self.state:SetAssignment(name, self.state.assignment_const.unassigned)
+    local p = self.players:Get(name)
+    if p:GetAssignment() == self.assignment_const.unknown then
+        p:SetAssignment(self.assignment_const.unassigned)
     end
 
     -- FIXME: This is really overkill. We should have a button object, and a way
@@ -455,10 +465,11 @@ function ZebRaid:MemberDisconnected(name)
 
     if not self.state:GetKarmaDb() then return end
 
-    if self.state:GetAssignment(name) == self.state.assignment_const.unassigned and
-        self.state:GetSignupStatus(name) == self.state.signup_const.unknown
+    local p = self.players:Get(name)
+    if p:GetAssignment() == self.assignment_const.unassigned and
+        p:GetSignupStatus(name) == self.signup_const.unknown
     then
-        self.state:RemoveAssignment(name)
+        p:RemoveAssignment(name)
     end
 
     -- FIXME: See above note about overkill.
@@ -482,7 +493,7 @@ function ZebRaid:MemberRemoved(name)
     if not self.state:GetKarmaDb() then return end
 
     -- We just gkicked the bugger. No assignment for him!
-    self.state:RemoveAssignment(name)
+    self.players:Get(name):RemoveAssignment()
     NeedRecalculateAfterUpdate = true
 end
 
@@ -518,8 +529,9 @@ function ZebRaid:AutoConfirm()
 
     -- Move all unassigned people who are signed up to confirmed.
     for i, name in self.SignedUp:GetIterator() do
-        if Guild:IsMemberOnline(name) then
-            self.state:SetAssignment(name, self.state.assignment_const.confirmed)
+        local p = self.players:Get(name)
+        if p:IsOnline() then
+            p:SetAssignment(self.assignment_const.confirmed)
         end
     end
 
@@ -598,8 +610,8 @@ end
 
 -- helper function to sort the list according to class, sitout and penalty
 function cmp_sort_for_sitout(name1, name2)
-    local p1 = ZebRaid.state.players:Get(name1)
-    local p2 = ZebRaid.state.players:Get(name2)
+    local p1 = ZebRaid.players:Get(name1)
+    local p2 = ZebRaid.players:Get(name2)
     local role1, role2
     role1 = p1:GetRole()
     role2 = p2:GetRole()
@@ -684,13 +696,13 @@ function ZebRaid:InitializeLists()
 
     local by_signup = function(status)
         return function(name)
-            return self.state:GetSignupStatus(name) == status
+            return self.players:Get(name):GetSignupStatus() == status
                end
     end
 
     local by_assignment = function(assignment)
         return function(name)
-            return self.state:GetAssignment(name) == assignment
+            return self.players:Get(name):GetAssignment() == assignment
                end
     end
 
@@ -711,38 +723,38 @@ function ZebRaid:InitializeLists()
 
     list_defs = {
         GuildList = {
-            assignment = self.state.assignment_const.unassigned,
-            filter = f_and(by_signup(self.state.signup_const.unknown),
-                           by_assignment(self.state.assignment_const.unassigned),
+            assignment = self.assignment_const.unassigned,
+            filter = f_and(by_signup(self.signup_const.unknown),
+                           by_assignment(self.assignment_const.unassigned),
 
                            is_online)
         },
         SignedUp = {
-            assignment = self.state.assignment_const.unassigned,
-            filter = f_and(by_signup(self.state.signup_const.signed),
-                           by_assignment(self.state.assignment_const.unassigned))
+            assignment = self.assignment_const.unassigned,
+            filter = f_and(by_signup(self.signup_const.signed),
+                           by_assignment(self.assignment_const.unassigned))
         },
         Unsure = {
-            assignment = self.state.assignment_const.unassigned,
-            filter = f_and(by_signup(self.state.signup_const.unsure),
-                           by_assignment(self.state.assignment_const.unassigned))
+            assignment = self.assignment_const.unassigned,
+            filter = f_and(by_signup(self.signup_const.unsure),
+                           by_assignment(self.assignment_const.unassigned))
         },
         Confirmed = {
-            assignment = self.state.assignment_const.confirmed,
-            filter = by_assignment(self.state.assignment_const.confirmed),
+            assignment = self.assignment_const.confirmed,
+            filter = by_assignment(self.assignment_const.confirmed),
             sort = cmp_sort_for_sitout
         },
         Reserved = {
-            assignment = self.state.assignment_const.reserved,
-            filter = by_assignment(self.state.assignment_const.reserved)
+            assignment = self.assignment_const.reserved,
+            filter = by_assignment(self.assignment_const.reserved)
         },
         Penalty = {
-            assignment = self.state.assignment_const.penalty,
-            filter = by_assignment(self.state.assignment_const.penalty)
+            assignment = self.assignment_const.penalty,
+            filter = by_assignment(self.assignment_const.penalty)
         },
         Sitout = {
-            assignment = self.state.assignment_const.sitout,
-            filter = by_assignment(self.state.assignment_const.sitout)
+            assignment = self.assignment_const.sitout,
+            filter = by_assignment(self.assignment_const.sitout)
         }
     }
 
@@ -754,13 +766,13 @@ function ZebRaid:InitializeLists()
 
     local filter_func = function (name)
         -- Choose all players who has signup data
-        return self.state:GetSignupStatus(name) ~= self.state.signup_const.unknown
+        return self.players:Get(name):GetSignupStatus() ~= self.signup_const.unknown
     end
 
     -- Iterate thrhough all registered users and tell tracker to set the mains
     -- for these people (if they are online)
-    for name, val in self.state:GetPlayerIterator(filter_func) do
-        if Guild:IsMemberOnline(name) then
+    for name, val in self.players:GetIterator(filter_func) do
+        if self.players:Get(name):IsOnline() then
             self:Tracker_SetPlayerMain(name)
         end
     end
@@ -1126,11 +1138,11 @@ function ZebRaid:RosterUpdated()
         -- FIXME: Make a roster object to fit in with the rest of the code
         for name in self:GetRosterIterator() do
             assignment = self.state:GetAssignment(name)
-            if assignment == self.state.assignment_const.unassigned or
-                assignment == self.state.assignment_const.unknown or
-                assignment == self.state.assignment_const.reserved
+            if assignment == self.assignment_const.unassigned or
+                assignment == self.assignment_const.unknown or
+                assignment == self.assignment_const.reserved
             then
-                self.state:SetAssignment(name, self.state.assignment_const.confirmed)
+                self.state:SetAssignment(name, self.assignment_const.confirmed)
             end
         end
     end

@@ -1,11 +1,20 @@
 local Guild = LibStub("LibGuild-1.0")
+local L = LibStub("AceLocale-3.0"):GetLocale("ZebRaid", true)
+
 local addonName, addonTable = ...
 local ZebRaid = addonTable.ZebRaid
 
-local obj = ZebRaid:NewClass("PlayerData", {})
+local obj = ZebRaid:NewClass("PlayerData",
+                             {
+                                 player_cache={}
+                             })
 
 function obj:Construct()
-    -- Nothing to see here. Move on.
+    if not self.class.state then
+        -- stop the infinite loop
+        self.class.state = true
+        self.class.state = ZebRaid:Construct("State")
+    end
 end
 
 -- This is supposed to be called on the class.
@@ -18,24 +27,74 @@ function obj:Get(name)
     if not self.data[name] then
         self.data[name] = {}
     end
-    return self:NewPlayer(self, name, self.data[name])
+    -- These player objects are generating a lot of garbage. Since they don't
+    -- have per-insance state, it is much better to have a single instance per
+    -- player.
+    if not self.player_cache[name] then
+        self.player_cache[name] = self:NewPlayer(self, name, self.data[name])
+    end
+    return self.player_cache[name]
 end
 
 function obj:NewPlayer(playerdata, name, record)
     return ZebRaid:Construct("Player", playerdata, name, record)
 end
 
+
+-- Get an iterator for known players in assigned list.
+-- filterfunc is called with name
+-- sortfunc is called with the names of the players tro be compared
+local iter = function(t)
+    local n = t.n + 1
+    t.n = n
+    if t[n] then
+        return n, t[n]
+    end
+end
+function obj:GetIterator(filterfunc, sortfunc)
+    local tmp = {}
+    local res = {}
+    -- Pick up players from online people, registered users, and players assigned
+    -- to roles.
+
+    for i in Guild:GetIterator("NAME", false) do
+        tmp[name] = true
+    end
+
+    for name in self.state:RegistrationIterator() do
+        tmp[name] = true
+    end
+
+    for name in self.state:AssignmentsIterator() do
+        tmp[name] = true
+    end
+
+    for name in pairs(tmp) do
+        tmp[name] = nil
+        if not filterfunc or filterfunc(name) then
+            table.insert(res, name)
+        end
+    end
+
+    if sortfunc then
+        table.sort(res, sortfunc)
+    end
+    res.n = 0
+
+    return iter, res, nil
+end
+
 -- Class that represents a player. It has a PlayerData backend for persistent
 -- state management.
-PlayerClass = ZebRaid:NewClass("Player", {})
+Player = ZebRaid:NewClass("Player", {})
 
-function PlayerClass:Construct(playerdata, name, record)
+function Player:Construct(playerdata, name, record)
     self.playerData = playerdata
     self.name = name
     self.record = record
 end
 
-function PlayerClass:GetName()
+function Player:GetName()
     return self.name
 end
 
@@ -45,7 +104,7 @@ local RoleOverrides={
     ["healing"] = "healer"
 }
 
-function PlayerClass:SetRole(role)
+function Player:SetRole(role)
     role = string.lower(role)
     -- Update the player role with the new one unless the role is
     -- unknown. If the player role is not recorded yet, just stick
@@ -57,26 +116,26 @@ function PlayerClass:SetRole(role)
     end
 end
 
-function PlayerClass:GetRole()
+function Player:GetRole()
     local role = self.record.role or "unknown"
     return string.lower(RoleOverrides[role] or role)
 end
 
-function PlayerClass:GetSitoutCount()
+function Player:GetSitoutCount()
     return #self:GetSitoutDates()
 end
 
-function PlayerClass:GetSitoutDates()
+function Player:GetSitoutDates()
     if not self.record.sitoutDates then self.record.sitoutDates = {} end
     return self.record.sitoutDates
 end
 
-function PlayerClass:GetLastSitoutDate()
+function Player:GetLastSitoutDate()
     local dates = self:GetSitoutDates()
     return dates[#dates] or "01/01/09"
 end
 
-function PlayerClass:AddSitout()
+function Player:AddSitout()
     local curDate = ZebRaid:GetRaidDate()
     local lastSitout = self:GetLastSitoutDate()
     if curDate ~= lastSitout then
@@ -84,7 +143,7 @@ function PlayerClass:AddSitout()
     end
 end
 
-function PlayerClass:RemoveSitout()
+function Player:RemoveSitout()
     local curDate = ZebRaid:GetRaidDate()
     local lastSitout = self:GetLastSitoutDate()
     if  lastSitout == curDate then
@@ -93,21 +152,21 @@ function PlayerClass:RemoveSitout()
     end
 end
 
-function PlayerClass:GetPenaltyCount()
+function Player:GetPenaltyCount()
     return #self:GetPenaltyDates()
 end
 
-function PlayerClass:GetPenaltyDates()
+function Player:GetPenaltyDates()
     if not self.record.penaltyDates then self.record.penaltyDates = {} end
     return self.record.penaltyDates
 end
 
-function PlayerClass:GetLastPenaltyDate()
+function Player:GetLastPenaltyDate()
     local dates = self:GetPenaltyDates()
     return dates[#dates] or "01/01/09"
 end
 
-function PlayerClass:AddPenalty()
+function Player:AddPenalty()
     local curDate = ZebRaid:GetRaidDate()
     local lastPenalty = self:GetLastPenaltyDate()
     if curDate ~= lastPenalty then
@@ -115,7 +174,7 @@ function PlayerClass:AddPenalty()
     end
 end
 
-function PlayerClass:RemovePenalty()
+function Player:RemovePenalty()
     local curDate = ZebRaid:GetRaidDate()
     local lastPenalty = self:GetLastPenaltyDate()
     if  lastPenalty == curDate then
@@ -124,21 +183,21 @@ function PlayerClass:RemovePenalty()
     end
 end
 
-function PlayerClass:GetSignedCount()
+function Player:GetSignedCount()
     return #self:GetSignedDates()
 end
 
-function PlayerClass:GetSignedDates()
+function Player:GetSignedDates()
     if not self.record.sitoutDates then self.record.sitoutDates = {} end
     return self.record.sitoutDates
 end
 
-function PlayerClass:GetLastSignedDate()
+function Player:GetLastSignedDate()
     local dates = self:GetSignedDates()
     return dates[#dates] or "01/01/09"
 end
 
-function PlayerClass:AddSigned()
+function Player:AddSigned()
     local curDate = ZebRaid:GetRaidDate()
     local lastSigned = self:GetLastSignedDate()
     if curDate ~= lastSigned then
@@ -146,7 +205,7 @@ function PlayerClass:AddSigned()
     end
 end
 
-function PlayerClass:RemoveSigned()
+function Player:RemoveSigned()
     local curDate = ZebRaid:GetRaidDate()
     local lastSigned = self:GetLastSignedDate()
     if  lastSigned == curDate then
@@ -155,23 +214,99 @@ function PlayerClass:RemoveSigned()
     end
 end
 
-function PlayerClass:GetAlts()
+function Player:GetAlts()
     return self.record.AltList
 end
 
-function PlayerClass:AddAlt(alt)
+function Player:AddAlt(alt)
     if not self.record.AltList then self.record.AltList = {} end
     self.record.AltList[alt] = true
 end
 
-function PlayerClass:GetGuildRank()
+function Player:GetGuildRank()
     return Guild:GetRank(self.name)
 end
 
-function PlayerClass:GetGuildNote()
+function Player:GetGuildNote()
     return Guild:GetNote(self.name)
 end
 
-function PlayerClass:IsOnline()
+function Player:IsOnline()
     return Guild:IsMemberOnline(self.name)
+end
+
+function Player:GetClass()
+    return Guild:GetClass(self.name)
+end
+
+function Player:GetTooltipText()
+    local text = "Rank: " .. (self:GetGuildRank() or "not in guild") .. "\n"
+    if self:GetGuildNote() then
+        text = text ..
+            self:GetGuildNote() .. "\n\n"
+    else
+        text = text .. "\n"
+    end
+
+    if not self:IsOnline() then
+        if ZebRaid:Tracker_IsAltOnline(self.name) then
+            text = text ..
+                "|cffff0000" .. L["ALT_ONLINE"] ..
+                ": " .. ZebRaid:Tracker_GetCurrentAlt(self.name) ..
+                "|r\n\n"
+        else
+            text = text ..
+                "|cffff0000" .. L["PLAYER_OFFLINE"] .. "|r\n\n"
+        end
+    end
+
+    local status = self:GetSignupStatus(self.name)
+    if status == ZebRaid.signup_const.unsigned then
+        text = text ..
+            "|cffff0000" .. L["PLAYER_UNSIGNED"] .. "|r\n\n"
+    end
+
+    local note = self:GetSignupNote(self.name)
+    if note then
+        text = text .. "\n" ..
+            "|cffffff00Note: " .. note .. "|r\n"
+    end
+
+    text = text ..
+        "|c9f3fff00" .. L["SIGNSTATS"] .. "|r: " ..
+        self:GetSignedCount() .. "/" ..
+        self:GetSitoutCount() .. "/" ..
+        self:GetPenaltyCount() .. "\n"
+
+    local sitoutDates = self:GetSitoutDates()
+    for _,v in ipairs(sitoutDates) do
+        text = text ..
+            "|c7f1fcf00" .. v .. "|r\n"
+    end
+    local penaltyDates = self:GetPenaltyDates()
+    for _,v in ipairs(penaltyDates) do
+        text = text ..
+            "|cff1f1f00" .. v .. "|r\n"
+    end
+    return text
+end
+
+function Player:GetSignupStatus()
+    return self.playerData.state:GetSignupStatus(self.name)
+end
+
+function Player:GetSignupNote()
+    return self.playerData.state:GetSignupNote(self.name)
+end
+
+function Player:GetAssignment()
+    return self.playerData.state:GetAssignment(self.name)
+end
+
+function Player:SetAssignment(assignment)
+    return self.playerData.state:SetAssignment(self.name, assignment)
+end
+
+function Player:RemoveAssignment()
+    return self.playerData.state:RemoveAssignment(self.name)
 end
