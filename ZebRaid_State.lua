@@ -40,26 +40,6 @@ function obj:Construct()
     if self.active and not self.active.RegisteredUsers then
         self:ParseLocalRaidData()
     end
-
---[[ This shouldn't be needed
-    -- Now, create a list assignment entry for all registered and online users
-    if not self.active.Assignments then
-        self.active.Assignments = {}
-
-        for name in pairs(self.RegisteredUsers) do
-            self:SetAssignment(name, ZebRaid.assignment_const.unassigned)
-        end
-    end
---]]
-    -- Now, go through each online member, and add assignments for them if they
-    -- don't have one.
-    for name in Guild:GetIterator("NAME", false) do
-        if Guild:GetLevel(name) == 80 and
-            not self:GetAssignment(name)
-        then
-            self:SetAssignment(name, ZebRaid.assignment_const.unassigned)
-        end
-    end
 end
 
 -- Class method
@@ -112,7 +92,7 @@ function obj:SetKarmaDb(db)
     end
 
     -- Just assign the online people. The database is probably not up-to-date
-    self:AssignOnline()
+--    self:AssignOnline()
 end
 
 function obj:GetKarmaDb()
@@ -163,17 +143,7 @@ end
 function obj:GetAssignment(name)
     if not ( self.active ) then  return end
 
-    -- If the active state has no assignments, create the table
-    if not self.active.Assignments then
-        self.active.Assignments = {}
-    end
-
-    -- If we have an empty assignment table, fill it in.
-    if next(self.active.Assignments) == nil then
-        self:ResetAssignments()
-    end
-
-    return self.active.Assignments[name]
+    return self.active.Assignments[name] or ZebRaid.assignment_const.unassigned
 end
 
 function obj:SetAssignment(name, assignment)
@@ -232,25 +202,9 @@ end
 
 function obj:ResetAssignments()
     -- Erase the table elements instead fo creating a new table for less garbage
-    -- TODO: Need a generis table allocator to reduce table garbagge
+    -- TODO: Need a generic table allocator to reduce table garbagge
     for i in pairs(self.active.Assignments) do
         self.active.Assignments[i] = nil
-    end
-
-    for name in pairs(self.active.RegisteredUsers) do
-        self:SetAssignment(name, ZebRaid.assignment_const.unassigned)
-    end
-
-    self:AssignOnline()
-end
-
-function obj:AssignOnline()
-    for name in Guild:GetIterator("NAME", false) do
-        if Guild:GetLevel(name) == 80 and
-            not self:GetAssignment(name) -- This will not cause recursion
-        then
-            self:SetAssignment(name, ZebRaid.assignment_const.unassigned)
-        end
     end
 end
 
