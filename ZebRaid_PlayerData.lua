@@ -2,7 +2,6 @@ local Guild = LibStub("LibGuild-1.0")
 local addonName, addonTable = ...
 local ZebRaid = addonTable.ZebRaid
 
--- Define a shorter name for the following code
 local obj = ZebRaid:NewClass("PlayerData", {})
 
 function obj:Construct()

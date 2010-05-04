@@ -1,7 +1,6 @@
 local addonName, addonTable = ...
 local ZebRaid = addonTable.ZebRaid
 
--- Define a shorter name for the following code
 local obj = ZebRaid:NewClass(
     "ButtonFactory",
     {

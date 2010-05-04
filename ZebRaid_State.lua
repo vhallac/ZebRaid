@@ -3,7 +3,6 @@ local L = LibStub("AceLocale-3.0"):GetLocale("ZebRaid", true)
 local addonName, addonTable = ...
 local ZebRaid = addonTable.ZebRaid
 
--- The function prototypes will go in here
 local obj = ZebRaid:NewClass(
     "State",
     {
