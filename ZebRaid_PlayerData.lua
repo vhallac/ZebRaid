@@ -44,20 +44,13 @@ end
 -- Get an iterator for known players in assigned list.
 -- filterfunc is called with name
 -- sortfunc is called with the names of the players tro be compared
-local iter = function(t)
-    local n = t.n + 1
-    t.n = n
-    if t[n] then
-        return n, t[n]
-    end
-end
 function obj:GetIterator(filterfunc, sortfunc)
     local tmp = {}
     local res = {}
     -- Pick up players from online people, registered users, and players assigned
     -- to roles.
 
-    for i in Guild:GetIterator("NAME", false) do
+    for name in Guild:GetIterator("NAME", false) do
         tmp[name] = true
     end
 
@@ -71,17 +64,26 @@ function obj:GetIterator(filterfunc, sortfunc)
 
     for name in pairs(tmp) do
         tmp[name] = nil
-        if not filterfunc or filterfunc(name) then
-            table.insert(res, name)
+        local player = self:Get(name)
+        if not filterfunc or filterfunc(player) then
+            table.insert(res, player)
         end
     end
 
     if sortfunc then
         table.sort(res, sortfunc)
     end
-    res.n = 0
 
-    return iter, res, nil
+    local i = 0
+    local n = #res
+    local iterfunc = function ()
+        if i < n then
+            i = i + 1
+            return i, res[i]
+        end
+    end
+
+    return iterfunc, res, nil
 end
 
 -- Class that represents a player. It has a PlayerData backend for persistent

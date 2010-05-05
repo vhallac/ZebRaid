@@ -256,9 +256,9 @@ function ZebRaid:Start()
 
     -- If there is an offline player in the Sitout list, ask their alts' tracker
     -- to respond
-    for i, name in self.Sitout:GetIterator() do
-        local alts = self.players:Get(name):GetAltList()
-        if not Guild:IsMemberOnline(name) and alts then
+    for _, player in self.Sitout:GetIterator() do
+        local alts = player:GetAltList()
+        if not player:IsOnline() and alts then
             for alt in pairs(alts) do
                 self:Tracker_QueryPresence(alt)
             end
@@ -332,7 +332,7 @@ function ZebRaid:PlayerOnDragStop(frame)
 
     -- Not signed up or unsigned => Cannot go to SignedUp, Unsure, or Penalty
     -- Allow Sitout for people who forgot to sign.
-    local signStat = self.players:Get(frame.player):GetSignupStatus()
+    local signStat = frame.player:GetSignupStatus()
 
     if signStat == self.signup_const.unsigned or
         signStat == self.signup_const.unknown
@@ -371,7 +371,7 @@ function ZebRaid:PlayerOnDragStop(frame)
 
     -- If we've moved the player, set up his/her new assignment
     if list ~= frame.inList then
-        self.players:Get(frame.player):SetAssignment(list:GetAssignment())
+        frame.player:SetAssignment(list:GetAssignment())
     end
 
     DraggingPlayer = nil
@@ -387,25 +387,23 @@ function ZebRaid:PlayerOnDoubleClick(frame, button)
     if self.UiLockedDown then return end
 
     local newassignment = self:ToggleAssignment(frame.player)
-    local p = self.players:Get(frame.player)
-    if p:GetAssignment() ~= newassignment then
-        p:SetAssignment(newassignment)
+    if frame.player:GetAssignment() ~= newassignment then
+        frame.player:SetAssignment(newassignment)
         self:ShowListMembers()
     end
 end
 
 function ZebRaid:PlayerOnEnter(frame)
-    local p = self.players:Get(frame.player)
     GameTooltip:SetOwner(this, "ANCHOR_RIGHT");
     GameTooltip:AddDoubleLine(name,
-                              p:GetClass(),
+                              frame.player:GetClass(),
                               NORMAL_FONT_COLOR.r,
                               NORMAL_FONT_COLOR.g,
                               NORMAL_FONT_COLOR.b,
                               HIGHLIGHT_FONT_COLOR.r,
                               HIGHLIGHT_FONT_COLOR.g,
                               HIGHLIGHT_FONT_COLOR.b);
-    GameTooltip:AddLine(p:GetTooltipText(), 1, 1, 1, 1);
+    GameTooltip:AddLine(frame.player:GetTooltipText(), 1, 1, 1, 1);
     GameTooltip:Show();
 end
 
@@ -415,17 +413,16 @@ end
 
 -- Find a suitable assignment for the specified player
 -- RETURNS: the selected list, or null.
-function ZebRaid:ToggleAssignment(name)
-    local p = self.players:Get(name)
-    local assignment = p:GetAssignment()
-    local signup = p:GetSignupStatus()
+function ZebRaid:ToggleAssignment(player)
+    local assignment = player:GetAssignment()
+    local signup = player:GetSignupStatus()
     local newassignment = self.assignment_const.unassigned
 
     if assignment == self.assignment_const.unassigned then
         if signup == self.signup_const.signed then
             newassignment = self.assignment_const.confirmed
         elseif signup == self.signup_const.unsure then
-            if Guild:IsMemberOnline(name) then
+            if player:IsOnline(name) then
                 newassignment = self.assignment_const.confirmed
             else
                 newassignment = self.assignment_const.reserved
@@ -547,10 +544,9 @@ function ZebRaid:AutoConfirm()
     if not self.state:GetKarmaDb() then return end
 
     -- Move all unassigned people who are signed up to confirmed.
-    for i, name in self.SignedUp:GetIterator() do
-        local p = self.players:Get(name)
-        if p:IsOnline() then
-            p:SetAssignment(self.assignment_const.confirmed)
+    for _, player in self.SignedUp:GetIterator() do
+        if player:IsOnline() then
+            player:SetAssignment(self.assignment_const.confirmed)
         end
     end
 
@@ -565,8 +561,8 @@ function ZebRaid:Announce()
     local message = ""
     local totalCount = self.Sitout:GetTotalCount()
     if totalCount > 0 then
-        for i, name in self.Sitout:GetIterator() do
-            message = message .. name
+        for i, player in self.Sitout:GetIterator() do
+            message = message .. player:GetName()
             if i ~= totalCount then
                 message = message .. ", "
             else
@@ -605,7 +601,8 @@ function ZebRaid:GiveKarma()
     end
 
     -- Give on time karma to all Confirmed and Sitout users.
-    for pos, name in self.Confirmed:GetIterator() do
+    for _, player in self.Confirmed:GetIterator() do
+        local name = player:GetName()
         -- Only confirmed people who are in raid deserve online karma. :-)
         if self:IsPlayerInRaid(name) then
             self:Debug("Giving on time karma to " .. name)
@@ -613,8 +610,8 @@ function ZebRaid:GiveKarma()
         end
     end
 
-    for pos, name in self.Sitout:GetIterator() do
-        Karma_Add_Player(name, ON_TIME_KARMA_VAL, "on time", "P")
+    for _, player in self.Sitout:GetIterator() do
+        Karma_Add_Player(player:GetName(), ON_TIME_KARMA_VAL, "on time", "P")
     end
 end
 
@@ -628,9 +625,7 @@ local function isDateGreater(a, b)
 end
 
 -- helper function to sort the list according to class, sitout and penalty
-function cmp_sort_for_sitout(name1, name2)
-    local p1 = ZebRaid.players:Get(name1)
-    local p2 = ZebRaid.players:Get(name2)
+function cmp_sort_for_sitout(p1, p2)
     local role1, role2
     role1 = p1:GetRole()
     role2 = p2:GetRole()
@@ -683,17 +678,17 @@ function cmp_sort_for_sitout(name1, name2)
         end
     end
 
-    return (score[1] == score[2]) and (name1 < name2) or (score[1] > score[2])
+    return (score[1] == score[2]) and (p1:GetName() < p2:GetName()) or (score[1] > score[2])
 end
 
 function ZebRaid:InitializeLists()
     local f_and = function (...)
         local funcs={...}
 
-        return function(name)
+        return function(player)
             local res = true
             for i, f in ipairs(funcs) do
-                res = res and f(name)
+                res = res and f(player)
                 if not res then break end
             end
             return res
@@ -703,10 +698,10 @@ function ZebRaid:InitializeLists()
     local f_or = function (...)
         local funcs={...}
 
-        return function(name)
+        return function(player)
             local res = false
             for i, f in ipairs(funcs) do
-                res = res or f(name)
+                res = res or f(player)
                 if res then break end
             end
             return res
@@ -714,19 +709,19 @@ function ZebRaid:InitializeLists()
     end
 
     local by_signup = function(status)
-        return function(name)
-            return self.players:Get(name):GetSignupStatus() == status
+        return function(player)
+            return player:GetSignupStatus() == status
                end
     end
 
     local by_assignment = function(assignment)
-        return function(name)
-            return self.players:Get(name):GetAssignment() == assignment
+        return function(player)
+            return player:GetAssignment() == assignment
                end
     end
 
-    local is_online = function(name)
-        return Guild:IsMemberOnline(name)
+    local is_online = function(player)
+        return player:IsOnline()
     end
 
     local make_list = function(name, assignment, filter_func, sort_func)
@@ -783,16 +778,17 @@ function ZebRaid:InitializeLists()
         end
     end
 
-    local filter_func = function (name)
+    local filter_func = function (player)
         -- Choose all players who has signup data
-        return self.players:Get(name):GetSignupStatus() ~= self.signup_const.unknown
+        return player:GetSignupStatus() ~= self.signup_const.unknown
     end
 
     -- Iterate thrhough all registered users and tell tracker to set the mains
     -- for these people (if they are online)
-    for name, val in self.players:GetIterator(filter_func) do
-        if self.players:Get(name):IsOnline() then
-            self:Tracker_SetPlayerMain(name)
+    for _, player in self.players:GetIterator(filter_func) do
+        if player:IsOnline() then
+            -- TODO: bridge from player class
+            self:Tracker_SetPlayerMain(player:GetName())
         end
     end
 end
@@ -1024,14 +1020,16 @@ function ZebRaid:DoInvites()
     -- Construct a list of members to invite
     local inviteList={}
     local inviteCount = 0
-    for _, name in self.Confirmed:GetIterator() do
+    for _, player in self.Confirmed:GetIterator() do
+        local name = player:GetName()
         if name ~= UnitName("player") and not self:IsPlayerInRaid(name) then
             table.insert(inviteList, {name=name})
             inviteCount = inviteCount + 1
         end
     end
 
-    for _, name in self.Sitout:GetIterator() do
+    for _, player in self.Sitout:GetIterator() do
+        local name = player:GetName()
         if name ~= UnitName("player") and not self:IsPlayerInRaid(name) then
             table.insert(inviteList, {name=name})
             inviteCount = inviteCount + 1
@@ -1218,13 +1216,14 @@ function ZebRaid:GiveBossKarma()
     -- Give on time karma to all raid members.
     Karma_Add(karma .. " all " .. boss, "P")
 
-    for pos, name in self.Sitout:GetIterator() do
+    for _, player in self.Sitout:GetIterator() do
         -- Only confirmed people who are in raid deserve online karma. :-)
---[[        if not self:IsPlayerInRaid(name) and
-           ( Guild:IsMemberOnline(name) or
-             self:IsAltOnline(name) )
+        --[[        if not self:IsPlayerInRaid(name) and
+        ( Guild:IsMemberOnline(name) or
+            self:IsAltOnline(name) )
         Just give everyone in sitout list the karma if they are not already in raid
-]]--
+           ]]--
+        local name = player:GetName()
         if not self:IsPlayerInRaid(name) then
             Karma_Add(karma .. " " .. name .. " " .. boss, "P")
         end

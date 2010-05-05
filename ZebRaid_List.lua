@@ -47,16 +47,16 @@ function obj:Update()
     end
 
     local makebuttons = true
-    for i, name in self:GetIterator() do
+    for i, player in self:GetIterator() do
         -- TODO: It should be possible to do incremental updates here
         -- WTB more side-effect programming. Fix it!
-        if makebuttons and not self:InsertNewButton(name, i) then
+        if makebuttons and not self:InsertNewButton(player, i) then
             -- List full. No need to add buttons further. But contiune the loop
             -- to have up-to-date counts
             makebuttons = false
         end
         -- Keep statistics. :)
-        local role = self.players:Get(name):GetRole()
+        local role = player:GetRole()
         self.counts[role] = self.counts[role] + 1
     end
 end
@@ -73,14 +73,14 @@ function obj:GetTotalCount()
     return total
 end
 
-function obj:InsertNewButton(name, pos)
+function obj:InsertNewButton(player, pos)
     local button = self.buttonFactory:Allocate()
     button.inList = self
-    self:SetButtonRole(button, name)
-    self:SetButtonLabel(button, name)
-    self:SetButtonColor(button, name)
+    button.player = player
+    self:SetButtonRole(button, player)
+    self:SetButtonLabel(button, player)
+    self:SetButtonColor(button, player)
 
-    button.player = name
     if self:SetButtonPos(button, pos) then
         table.insert(self.buttons, button)
         return true
@@ -102,41 +102,42 @@ local RoleLetters = {
     unknown = "?"
 }
 
-function obj:SetButtonRole(button, name)
+function obj:SetButtonRole(button, player)
     local buttonRole = getglobal(button:GetName() .. "Role")
     local prefix = ""
-    local p=self.players:Get(name)
 
     -- Put a * before the role if there is a note.
-    if p:GetSignupNote() then
+    if player:GetSignupNote() then
         prefix = prefix .. "*"
     end
 
-    buttonRole:SetText(prefix .. (RoleLetters[p:GetRole()] or "X") )
+    buttonRole:SetText(prefix .. (RoleLetters[player:GetRole()] or "X") )
 
     buttonRole:SetTextColor(0.8, 0.8, 0)
 end
 
-function obj:SetButtonLabel(button, name)
+function obj:SetButtonLabel(button, player)
     local buttonLabel = getglobal(button:GetName() .. "Label")
 
     -- Put a x before the name if the user has unsigned from the raid
     local prefix = ""
     -- TODO: Move constants to a sensible location
-    if self.players:Get(name):GetSignupStatus() == ZebRaid.signup_const.unsigned then
+    if player:GetSignupStatus() == ZebRaid.signup_const.unsigned then
         prefix = prefix .. "x"
     end
 
-    buttonLabel:SetText(prefix .. name)
-    buttonLabel:SetTextColor(Guild:GetClassColor(name))
+    buttonLabel:SetText(prefix .. player:GetName())
+    -- TODO: Add GetClassColor() to player class
+    buttonLabel:SetTextColor(Guild:GetClassColor(player:GetName()))
 end
 
 -- TODO: These are supposed to be only for the confirmed list
 -- We may need a special callout for the logic here
-function obj:SetButtonColor(button, name)
+function obj:SetButtonColor(button, player)
     local buttonColor = getglobal(button:GetName() .. "Color")
-    if Guild:IsMemberOnline(name) then
-        if ZebRaid:IsPlayerInRaid(name) then
+    if player:IsOnline() then
+        -- TODO: Move to player class
+        if ZebRaid:IsPlayerInRaid(player:GetName()) then
             -- Confirmed and in raid player background color
             buttonColor:SetTexture(0.1, 0.3, 0.1)
         else
@@ -144,10 +145,11 @@ function obj:SetButtonColor(button, name)
             buttonColor:SetTexture(0.05, 0.05, 0.05)
         end
     else
-        if ZebRaid:IsPlayerInRaid(button, name) then
+        if ZebRaid:IsPlayerInRaid(player:GetName()) then
             -- Offline: Confirmed and in raid player background color
             buttonColor:SetTexture(0.2, 0.2, 0.1)
-        elseif ZebRaid:Tracker_IsAltOnline(name) then
+            -- TODO: Move to player class
+        elseif ZebRaid:Tracker_IsAltOnline(player:GetName()) then
             buttonColor:SetTexture(0.1, 0.1, 0.2)
         else
             -- Offline player background color
