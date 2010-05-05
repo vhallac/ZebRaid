@@ -84,6 +84,10 @@ function obj:SetKarmaDb(db)
         self:ParseLocalRaidData()
     end
 
+    if not self.active.Assignments then
+        self.active.Assignments = {}
+    end
+
     -- Now, give new penalty and sitouts to people
     if self.active and self.active.Assignments then
         for name, assignment in pairs(self.active.Assignments) do
