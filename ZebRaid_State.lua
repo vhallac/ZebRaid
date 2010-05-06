@@ -1,4 +1,3 @@
-local Guild = LibStub("LibGuild-1.0")
 local addonName, addonTable = ...
 local ZebRaid = addonTable.ZebRaid
 
@@ -114,9 +113,10 @@ function obj:SetRaidId(id)
 end
 
 function obj:AddRegisteredUser(name, status, role, note)
+    local p = self.players:Get(name)
     if note == "" then note = nil end
 
-    if Guild:HasMember(name) then
+    if p:IsInGuild() then
         -- If we didn't gkick the user since sign-up, add him to the
         -- RegisteredUsers table
         self.active.RegisteredUsers[name] = {
@@ -126,7 +126,7 @@ function obj:AddRegisteredUser(name, status, role, note)
         }
 
         -- Update player database with the new role
-        self.players:Get(name):SetRole(role)
+        p:SetRole(role)
     end
 end
 

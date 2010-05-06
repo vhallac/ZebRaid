@@ -127,8 +127,7 @@ function obj:SetButtonLabel(button, player)
     end
 
     buttonLabel:SetText(prefix .. player:GetName())
-    -- TODO: Add GetClassColor() to player class
-    buttonLabel:SetTextColor(Guild:GetClassColor(player:GetName()))
+    buttonLabel:SetTextColor(player:GetClassColor())
 end
 
 -- TODO: These are supposed to be only for the confirmed list
@@ -136,8 +135,7 @@ end
 function obj:SetButtonColor(button, player)
     local buttonColor = getglobal(button:GetName() .. "Color")
     if player:IsOnline() then
-        -- TODO: Move to player class
-        if ZebRaid:IsPlayerInRaid(player:GetName()) then
+        if player:IsInRaid() then
             -- Confirmed and in raid player background color
             buttonColor:SetTexture(0.1, 0.3, 0.1)
         else
@@ -145,11 +143,10 @@ function obj:SetButtonColor(button, player)
             buttonColor:SetTexture(0.05, 0.05, 0.05)
         end
     else
-        if ZebRaid:IsPlayerInRaid(player:GetName()) then
+        if player:IsInRaid() then
             -- Offline: Confirmed and in raid player background color
             buttonColor:SetTexture(0.2, 0.2, 0.1)
-            -- TODO: Move to player class
-        elseif ZebRaid:Tracker_IsAltOnline(player:GetName()) then
+        elseif player:IsAltOnline() then
             buttonColor:SetTexture(0.1, 0.1, 0.2)
         else
             -- Offline player background color

@@ -455,6 +455,9 @@ function ZebRaid:MemberConnected(name)
 
     if self.UiLockedDown then return end
 
+    -- Leave this as it is. We don't want to create entries in the database for
+    -- members who are not 80 yet. If we call self.players:Get(name) here, it would
+    -- create an entry (not that there's anything wrong with that).
     if Guild:GetLevel(name) ~= 80 then return end
 
     if not self.state:GetKarmaDb() then return end
@@ -602,10 +605,9 @@ function ZebRaid:GiveKarma()
 
     -- Give on time karma to all Confirmed and Sitout users.
     for _, player in self.Confirmed:GetIterator() do
-        local name = player:GetName()
         -- Only confirmed people who are in raid deserve online karma. :-)
-        if self:IsPlayerInRaid(name) then
-            self:Debug("Giving on time karma to " .. name)
+        if player:IsInRaid() then
+            self:Debug("Giving on time karma to " .. player:GetName())
             -- Karma_Add_Player(name, ON_TIME_KARMA_VAL, "on time", "P")
         end
     end
@@ -787,8 +789,7 @@ function ZebRaid:InitializeLists()
     -- for these people (if they are online)
     for _, player in self.players:GetIterator(filter_func) do
         if player:IsOnline() then
-            -- TODO: bridge from player class
-            self:Tracker_SetPlayerMain(player:GetName())
+            player:SetMainToon()
         end
     end
 end
@@ -1021,17 +1022,15 @@ function ZebRaid:DoInvites()
     local inviteList={}
     local inviteCount = 0
     for _, player in self.Confirmed:GetIterator() do
-        local name = player:GetName()
-        if name ~= UnitName("player") and not self:IsPlayerInRaid(name) then
-            table.insert(inviteList, {name=name})
+        if player:GetName() ~= UnitName("player") and not player:IsInRaid() then
+            table.insert(inviteList, {name=player:GetName()})
             inviteCount = inviteCount + 1
         end
     end
 
     for _, player in self.Sitout:GetIterator() do
-        local name = player:GetName()
-        if name ~= UnitName("player") and not self:IsPlayerInRaid(name) then
-            table.insert(inviteList, {name=name})
+        if player:GetName() ~= UnitName("player") and not player:IsInRaid() then
+            table.insert(inviteList, {name=player:GetName()})
             inviteCount = inviteCount + 1
         end
     end
@@ -1053,7 +1052,7 @@ function ZebRaid:DoInvites()
 
             for i, v in ipairs(inviteList) do
                 -- Invite the next person
-                if Guild:IsMemberOnline(v.name) then
+                if self.players:Get(v.name):IsOnline() then
                     self:Debug("Inviting " .. v.name)
                     InviteUnit(v.name)
                     waitingAccept = waitingAccept + 1
@@ -1107,10 +1106,9 @@ function ZebRaid:DoInvites()
 
     -- We should be in raid now. Invite everybody
     for i, v in ipairs(inviteList) do
-        if not self:IsPlayerInRaid(v.name) then
-            if (not Guild:HasMember(v.name) or
-                Guild:IsMemberOnline(v.name))
-            then
+        local p = self.players:Get(v.name)
+        if not p:IsPlayerInRaid() then
+            if p:IsOnline() then
                 InviteUnit(v.name)
             end
         end
@@ -1218,14 +1216,13 @@ function ZebRaid:GiveBossKarma()
 
     for _, player in self.Sitout:GetIterator() do
         -- Only confirmed people who are in raid deserve online karma. :-)
-        --[[        if not self:IsPlayerInRaid(name) and
-        ( Guild:IsMemberOnline(name) or
-            self:IsAltOnline(name) )
+        --[[        if not player:IsInRaid() and
+        ( player:IsOnline() or
+            player:IsAltOnline() )
         Just give everyone in sitout list the karma if they are not already in raid
            ]]--
-        local name = player:GetName()
-        if not self:IsPlayerInRaid(name) then
-            Karma_Add(karma .. " " .. name .. " " .. boss, "P")
+        if not player:IsInRaid() then
+            Karma_Add(karma .. " " .. player:GetName() .. " " .. boss, "P")
         end
     end
 end

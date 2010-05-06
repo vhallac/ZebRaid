@@ -234,7 +234,18 @@ function Player:GetGuildNote()
 end
 
 function Player:IsOnline()
-    return Guild:IsMemberOnline(self.name)
+    -- It is not easy to determine non-guildies online status.
+    -- For now, report online for everyone not in guild.
+    return not self:IsInGuild() or Guild:IsMemberOnline(self.name)
+end
+
+function Player:IsAltOnline()
+    -- TODO: Move tracker functionality to PlayerData
+    ZebRaid:Tracker_IsAltOnline(self.name)
+end
+
+function Player:SetMainToon()
+    ZebRaid:Tracker_SetPlayerMain(self.name)
 end
 
 function Player:GetClass()
@@ -311,4 +322,17 @@ end
 
 function Player:RemoveAssignment()
     return self.playerData.state:RemoveAssignment(self.name)
+end
+
+function Player:GetClassColor()
+    return Guild:GetClassColor(self.name)
+end
+
+function Player:IsInGuild()
+    return Guild:HasMember(self.name)
+end
+
+function Player:IsInRaid()
+    -- TODO: Move roster functionality to playerdata
+    return ZebRaid:IsPlayerInRaid(self.name)
 end
