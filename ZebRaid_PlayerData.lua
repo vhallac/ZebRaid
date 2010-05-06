@@ -15,6 +15,10 @@ function obj:Construct()
         self.class.state = true
         self.class.state = ZebRaid:Construct("State")
     end
+
+    if not self.class.roster then
+        self.class.roster = ZebRaid:Construct("Roster")
+    end
 end
 
 -- This is supposed to be called on the class.
@@ -334,5 +338,6 @@ end
 
 function Player:IsInRaid()
     -- TODO: Move roster functionality to playerdata
-    return ZebRaid:IsPlayerInRaid(self.name)
+    return self.playerData.roster:IsPlayerInRaid(self.name)
 end
+

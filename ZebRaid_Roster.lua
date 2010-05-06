@@ -1,10 +1,18 @@
-local initialized = false
+local addonName, addonTable = ...
+local ZebRaid = addonTable.ZebRaid
 
-function ZebRaid:RosterInit()
-    if not initialized then
+local Roster = ZebRaid:NewClass("Roster",
+                                {
+                                    initialized = false
+                                })
+
+-- This is a class method
+function Roster:Initialize()
+    if not self.initialized then
         if not self.unitIds then self.unitIds = {} end
-        self:RegisterEvent("RAID_ROSTER_UPDATE", "MembersChanged")
-        self:RegisterEvent("PARTY_MEMBERS_CHANGED", "MembersChanged")
+
+        ZebRaid:RegisterEvent("RAID_ROSTER_UPDATE", self.MembersChanged, self)
+        ZebRaid:RegisterEvent("PARTY_MEMBERS_CHANGED", self.MembersChanged, self)
 
         -- Assume there was a change, and record the current status
         self:MembersChanged()
@@ -13,29 +21,34 @@ function ZebRaid:RosterInit()
     end
 end
 
-function ZebRaid:RosterFinal()
+-- This is a class method
+function Roster:Finalize()
     if initialized then
         initialized = false
-        self:UnregisterEvent("PARTY_MEMBERS_CHANGED")
-        self:UnregisterEvent("RAID_ROSTER_UPDATE")
+        ZebRaid:UnregisterEvent("PARTY_MEMBERS_CHANGED")
+        ZebRaid:UnregisterEvent("RAID_ROSTER_UPDATE")
     end
 end
 
-function ZebRaid:IsPlayerInRaid(player)
+function Roster:Construct()
+end
+
+function Roster:IsPlayerInRaid(player)
    if self.unitIds[player] then return true
    else return false
    end
 end
 
-function ZebRaid:GetRosterIterator()
+function Roster:GetIterator()
     return pairs(self.unitIds)
 end
 
-function ZebRaid:MembersChanged()
-    self:Debug("ZebRaid:MembersChanged()")
-    
+-- This is a class method (see how it is registered)
+function Roster:MembersChanged()
+    ZebRaid:Debug("Roster:MembersChanged()")
+
     local updated = false
-    
+
     -- Get rid of people who left the raid, or changed unit ids
     for name, unit in pairs(self.unitIds) do
         if GetUnitName(unit) ~= name
@@ -44,7 +57,7 @@ function ZebRaid:MembersChanged()
             updated = true
         end
     end
-    
+
     -- Scan either the party, or the raid
     local formatString, getCountFunc
     if UnitInRaid("player") then
@@ -54,7 +67,7 @@ function ZebRaid:MembersChanged()
         formatString = "party%d"
         getCountFunc = GetNumPartyMembers
     end
-    
+
     if getCountFunc then
         local n = getCountFunc()
         for i=1,n do
@@ -70,9 +83,12 @@ function ZebRaid:MembersChanged()
     end
 
     if updated then
-        self:Debug("Triggering ZebRaid_RosterUpdated");
-        self:SendMessage("ZebRaid_RosterUpdated")
+        ZebRaid:Debug("Triggering ZebRaid_RosterUpdated");
+        -- TODO: So many things wrong with this design. Create a per-instance
+        -- callback handler, and some sort of event handler that isolates the
+        -- ZebRaid logic from the details.
+        ZebRaid:SendMessage("ZebRaid_RosterUpdated")
     end
 
-    self:Debug("ZebRaid:MembersChanged():END")
+    ZebRaid:Debug("Roster:MembersChanged():END")
 end

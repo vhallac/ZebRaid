@@ -162,6 +162,10 @@ function ZebRaid:OnEnable()
         self.players = self:Construct("PlayerData")
     end
 
+    if not self.roster then
+        self.roster = self:Construct("Roster")
+    end
+
     PlayerName, _ = UnitName("player")
 
     Guild.RegisterCallback(self, "Update", "GuildStatusUpdated")
@@ -216,11 +220,13 @@ function ZebRaid:Start()
     if StartWasCalled then
         StartWasCalled = nil
         ZebRaidDialog:Hide()
-        ZebRaid:RosterFinal()
+        -- FIXME: yuk!
+        self.roster.class:Finalize()
         return
     end
 
-    self:RosterInit()
+    -- FIXME: yuk!
+    self.roster.class:Initialize()
 
     local karmaDb = self.state:GetKarmaDb()
     local uiMaster = self.state:GetUiMaster(karmaDb)
@@ -996,7 +1002,8 @@ end
 
 function ZebRaid:OnHide()
     StartWasCalled = nil
-    ZebRaid:RosterFinal()
+    -- FIXME: yuk!
+    self.roster.class:Finalize()
 end
 
 function ZebRaid:StartInvite()
@@ -1150,8 +1157,9 @@ function ZebRaid:RosterUpdated()
 
     -- Move every player in raid to confirmed if they are not in penalty or sitout
     if self.state:GetKarmaDb() then
-        -- FIXME: Make a roster object to fit in with the rest of the code
-        for name in self:GetRosterIterator() do
+        -- FIXME: Yuk! Need a much better way to do this. Roster belongs in
+        -- PlayerData class.
+        for name in self.roster:GetIterator() do
             assignment = self.state:GetAssignment(name)
             if assignment == self.assignment_const.unassigned or
                 assignment == self.assignment_const.unknown or
