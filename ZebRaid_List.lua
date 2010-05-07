@@ -37,7 +37,8 @@ end
 
 function obj:Update()
     for k, v in ipairs(self.buttons) do
-        self.buttonFactory:Free(v)
+        -- Put the button back on the store
+        self.buttonFactory:Put(v)
         self.buttons[k] = nil
     end
 
@@ -74,102 +75,23 @@ function obj:GetTotalCount()
 end
 
 function obj:InsertNewButton(player, pos)
-    local button = self.buttonFactory:Allocate()
+    local button = self.buttonFactory:Get(player)
     button.inList = self
-    button.player = player
-    self:SetButtonRole(button, player)
-    self:SetButtonLabel(button, player)
-    self:SetButtonColor(button, player)
 
     if self:SetButtonPos(button, pos) then
-        table.insert(self.buttons, button)
+        button:Refresh()
+        table.insert(self.buttons, button) -- Do we need these?
         return true
     else
-        -- A bit of a waste to do it like this, but cleaner code. Will leave it
-        -- in for now.
-        self.buttonFactory:Free(button)
+        -- Hide it away until it is visible
+        self.buttonFactory:Put(button)
         return false
-    end
-end
-
--- The letters we use in the lists to indicate raid role
-local RoleLetters = {
-    melee = "M",
-    tank = "T",
-    healer = "H",
-    ranged = "R",
-    hybrid = "Y",
-    unknown = "?"
-}
-
-function obj:SetButtonRole(button, player)
-    local buttonRole = getglobal(button:GetName() .. "Role")
-    local prefix = ""
-
-    -- Put a * before the role if there is a note.
-    if player:GetSignupNote() then
-        prefix = prefix .. "*"
-    end
-
-    buttonRole:SetText(prefix .. (RoleLetters[player:GetRole()] or "X") )
-
-    buttonRole:SetTextColor(0.8, 0.8, 0)
-end
-
-function obj:SetButtonLabel(button, player)
-    local buttonLabel = getglobal(button:GetName() .. "Label")
-
-    -- Put a x before the name if the user has unsigned from the raid
-    local prefix = ""
-    -- TODO: Move constants to a sensible location
-    if player:GetSignupStatus() == ZebRaid.signup_const.unsigned then
-        prefix = prefix .. "x"
-    end
-
-    buttonLabel:SetText(prefix .. player:GetName())
-    buttonLabel:SetTextColor(player:GetClassColor())
-end
-
--- TODO: These are supposed to be only for the confirmed list
--- We may need a special callout for the logic here
-function obj:SetButtonColor(button, player)
-    local buttonColor = getglobal(button:GetName() .. "Color")
-    if player:IsOnline() then
-        if player:IsInRaid() then
-            -- Confirmed and in raid player background color
-            buttonColor:SetTexture(0.1, 0.3, 0.1)
-        else
-            -- Online player background color
-            buttonColor:SetTexture(0.05, 0.05, 0.05)
-        end
-    else
-        if player:IsInRaid() then
-            -- Offline: Confirmed and in raid player background color
-            buttonColor:SetTexture(0.2, 0.2, 0.1)
-        elseif player:IsAltOnline() then
-            buttonColor:SetTexture(0.1, 0.1, 0.2)
-        else
-            -- Offline player background color
-            buttonColor:SetTexture(0.2, 0.1, 0.1)
-        end
     end
 end
 
 function obj:SetButtonPos(button, pos)
-    -- Place the button in its list
-    button:ClearAllPoints()
-    -- TODO: Layou the slots dynamically at constructor
-    local slot = getglobal(self.visual:GetName() .. "Slot" .. pos)
-    if slot then
-        button:SetPoint("TOP", slot)
-        button:SetHitRectInsets(0, 0, 0, 0)
-        button:SetFrameLevel(slot:GetFrameLevel() + 20)
-        button:RegisterForDrag("LeftButton")
-        button:Show()
-        return true
-    else
-        return false
-   end
+    local slotName = self.visual:GetName() .. "Slot" .. pos
+    return button:Overlay(slotName)
 end
 
 function obj:GetIterator()
