@@ -1,5 +1,6 @@
 local MAJOR_VERSION = "LibGuild-1.0"
-local MINOR_VERSION = tonumber(("$Revision: 81803 $"):match("%d+")) or 0
+-- Use a base of 100000 to pick up my fixes
+local MINOR_VERSION = 100000 + tonumber(("$Revision: 30 $"):match("%d+")) or 0
 
 local lib, oldMinor = LibStub:NewLibrary(MAJOR_VERSION, MINOR_VERSION)
 if not lib then return end
@@ -184,7 +185,7 @@ function frame:GUILD_ROSTER_UPDATE()
 				playersOnline[name] = true
 				if playersOnlineOld[name] then
 					playersOnlineOld[name] = nil
-				elseif playersOld[name] then
+				elseif not add then
 					connect = true
 				end
 			end
