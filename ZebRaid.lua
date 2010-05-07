@@ -168,11 +168,11 @@ function ZebRaid:OnEnable()
 
     PlayerName, _ = UnitName("player")
 
-    Guild.RegisterCallback(self, "Update", "GuildStatusUpdated")
-    Guild.RegisterCallback(self, "Added", "MemberAdded")
-    Guild.RegisterCallback(self, "Removed", "MemberRemoved")
-    Guild.RegisterCallback(self, "Connected", "MemberConnected")
-    Guild.RegisterCallback(self, "Disconnected", "MemberDisconnected")
+    Guild:RegisterCallback("Update", self.GuildStatusUpdated, self)
+    Guild:RegisterCallback("Added", self.MemberAdded, self)
+    Guild:RegisterCallback("Removed", self.MemberRemoved, self)
+    Guild:RegisterCallback("Connected", self.MemberConnected, self)
+    Guild:RegisterCallback("Disconnected", self.MemberDisconnected, self)
     self:RegisterMessage("ZebRaid_RosterUpdated", "RosterUpdated")
 
     ZebRaidDialogCommandsInviteRaid:SetText(L["START_RAID"])
@@ -451,15 +451,13 @@ function ZebRaid:ToggleAssignment(player)
     return newassignment;
 end
 
-function ZebRaid:MemberConnected(name)
+function ZebRaid:MemberConnected(event, name)
     self:Debug("Got member: " .. name)
 
     -- If the player has ever signed up with this name, set it to be the main character
     self:Tracker_SetPlayerMain(name)
 
     if not StartWasCalled then return end
-
-    if self.UiLockedDown then return end
 
     -- Leave this as it is. We don't want to create entries in the database for
     -- members who are not 80 yet. If we call self.players:Get(name) here, it would
@@ -469,9 +467,6 @@ function ZebRaid:MemberConnected(name)
     if not self.state:GetKarmaDb() then return end
 
     local p = self.players:Get(name)
-    if p:GetAssignment() == self.assignment_const.unknown then
-        p:SetAssignment(self.assignment_const.unassigned)
-    end
 
     -- FIXME: This is really overkill. We should have a button object, and a way
     -- to get the button of the player. That way we don't redraw the world when
@@ -480,13 +475,12 @@ function ZebRaid:MemberConnected(name)
 
     -- Since this instance is the current master, let the alt know where to
     -- report status
-    self:Tracker_SetTracker(name)
+    self:Tracker_SetTrackerName(name)
 end
 
-function ZebRaid:MemberDisconnected(name)
+function ZebRaid:MemberDisconnected(event, name)
+    self:Debug("MemberDisconnected")
     if not StartWasCalled then return end
-
-    if self.UiLockedDown then return end
 
     if not self.state:GetKarmaDb() then return end
 
@@ -501,19 +495,16 @@ function ZebRaid:MemberDisconnected(name)
     NeedRecalculateAfterUpdate = true
 end
 
-function ZebRaid:MemberAdded(name)
+function ZebRaid:MemberAdded(event, name)
     if not StartWasCalled then return end
 
-    if self.UiLockedDown then return end
-
-    -- Do we need to do anything here? He'll come online, and we'll process
-    -- him.
+    -- If I understand LibGuild code right, we won't get a separate
+    -- MemberConnected event for this player.
+    self:MemberConnected(name)
 end
 
-function ZebRaid:MemberRemoved(name)
+function ZebRaid:MemberRemoved(event, name)
     if not StartWasCalled then return end
-
-    if self.UiLockedDown then return end
 
     if not self.state:GetKarmaDb() then return end
 
@@ -523,9 +514,8 @@ function ZebRaid:MemberRemoved(name)
 end
 
 function ZebRaid:GuildStatusUpdated()
+    self:Debug("GuildStatusUpdated")
     if not StartWasCalled then return end
-
-    if self.UiLockedDown then return end
 
     if NeedRecalculateAfterUpdate then
         self:ShowListMembers()
