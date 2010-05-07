@@ -123,8 +123,8 @@ function Player:SetRole(role)
 end
 
 function Player:GetRole()
-    local role = self.record.role or "unknown"
-    return string.lower(RoleOverrides[role] or role)
+    local role = string.lower(self.record.role or "unknown")
+    return RoleOverrides[role] or role
 end
 
 function Player:GetSitoutCount()
