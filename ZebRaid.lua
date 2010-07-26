@@ -263,7 +263,7 @@ function ZebRaid:Start()
     -- If there is an offline player in the Sitout list, ask their alts' tracker
     -- to respond
     for _, player in self.Sitout:GetIterator() do
-        local alts = player:GetAltList()
+        local alts = player:GetAlts()
         if not player:IsOnline() and alts then
             for alt in pairs(alts) do
                 self:Tracker_QueryPresence(alt)
@@ -1104,7 +1104,7 @@ function ZebRaid:DoInvites()
     -- We should be in raid now. Invite everybody
     for i, v in ipairs(inviteList) do
         local p = self.players:Get(v.name)
-        if not p:IsPlayerInRaid() then
+        if not p:IsInRaid() then
             if p:IsOnline() then
                 InviteUnit(v.name)
             end

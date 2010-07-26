@@ -266,7 +266,7 @@ function Player:GetTooltipText()
     end
 
     if not self:IsOnline() then
-        if ZebRaid:Tracker_IsAltOnline(self.name) then
+        if self:IsAltOnline() then
             text = text ..
                 "|cffff0000" .. L["ALT_ONLINE"] ..
                 ": " .. ZebRaid:Tracker_GetCurrentAlt(self.name) ..

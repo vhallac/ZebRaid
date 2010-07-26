@@ -114,6 +114,7 @@ end
 
 function obj:AddRegisteredUser(name, status, role, note)
     local p = self.players:Get(name)
+
     if note == "" then note = nil end
 
     if p:IsInGuild() then
